@@ -1,0 +1,182 @@
+/* General Styling */
+:root {
+    --bg-start: #f4f8ff;
+    --bg-end: #eef6ff;
+    --accent: #0b72e6;
+    --accent-2: #0b3973;
+    --muted: #6b7280;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+    color: #102a43;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Container Styling */
+.container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Form Styling */
+.form-box {
+    width: 100%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), #ffffff);
+    border-radius: 14px;
+    padding: 30px;
+    box-shadow: 0 12px 30px rgba(16, 42, 67, 0.12);
+    border: 1px solid rgba(11, 57, 115, 0.04);
+    margin-top: 30px;
+}
+
+/* Heading Style */
+.form-box h2 {
+    margin: 0 0 16px 0;
+    font-size: 1.5rem;
+    text-align: center;
+    color: var(--accent-2);
+}
+
+/* Input Fields Styling */
+.form-box .box {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    margin: 8px 0;  /* Reduced margin for a compact feel */
+    font-size: 0.95rem;
+    color: #07203a;
+    background: #fff;
+    border: 1px solid #e6eef8;
+    border-radius: 10px;
+    transition: box-shadow 0.14s ease, border-color 0.14s ease, transform 0.12s ease;
+}
+
+.form-box .box:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 6px 20px rgba(11, 114, 230, 0.12);
+    transform: translateY(-1px);
+}
+
+input[type="file"].box {
+    padding: 10px;
+}
+
+/* Submit Button Styling */
+.form-box button {
+    display: inline-block;
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(11, 57, 115, 0.12);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.form-box button:hover {
+    transform: translateY(-3px);
+}
+
+.form-box button:active {
+    transform: translateY(-1px);
+    opacity: 0.98;
+}
+
+/* Flight List Styling */
+h2 {
+    font-size: 1.5rem;
+    color: var(--accent-2);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.flight-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+.flight-box {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 0;
+    border-radius: 8px;
+    width: 22%;
+    text-align: center;
+    box-sizing: border-box;
+    transition: box-shadow 0.3s ease;
+}
+
+.flight-box img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.flight-box h3 {
+    font-size: 16px;
+    color: #333;
+}
+
+.flight-box p {
+    font-size: 13px;
+    color: #555;
+}
+
+.flight-box a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.flight-box a:hover {
+    text-decoration: underline;
+}
+
+.flight-box:hover {
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .flight-box {
+        width: 45%;
+    }
+}
+
+@media (max-width: 480px) {
+    .flight-box {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .form-box .box,
+    .form-box button {
+        transition: none;
+    }
+}
+
+
+
+

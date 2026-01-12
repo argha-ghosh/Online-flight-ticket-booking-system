@@ -1,0 +1,21 @@
+Passing manager role while adding a new manager from admin to database.
+Hamburger button doesn't work properly.
+
+
+
+Authentication 
+   Login to the system ..........
+   Logout from the system .........
+   User registration 
+
+Account Management 
+   Change or reset password 
+   Manage profile information (view, edit, delete) 
+
+Dashboard 
+   Access a personalized dashboard after login ..........
+
+Admin 
+   Manage airlines (add/remove airlines, edit details) .........
+   Manage flights (add schedules, update timing, cancel flights) .........
+   Full system analytics (total bookings, revenue, most booked routes) 
