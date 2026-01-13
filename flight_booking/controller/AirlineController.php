@@ -32,7 +32,7 @@ if ($result->num_rows > 0) {
         $airlines[] = $row;
     }
 }
-
+// Delete Airline Information
 if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
     $delete_sql = "DELETE FROM airlines WHERE id=$delete_id";
