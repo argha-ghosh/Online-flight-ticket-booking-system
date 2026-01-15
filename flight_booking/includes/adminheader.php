@@ -6,7 +6,6 @@
     <title>GoZayan</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
     <link rel ="stylesheet" href= "component.css">
-    <script src="controller/hamburger.js"></script>
 </head>
 <body>
     <header>
@@ -20,7 +19,6 @@
                 <a href="/flight_booking/view/login.php">Logout</a>
                 <a href="/flight_booking/view/viewadminprofile.php">View Profile</a>
 
-                <!-- Profile Dropdown -->
                 <div class="dropdown">
                      <div class="hamburger">
                          <span></span>
@@ -38,5 +36,14 @@
             </nav>
         </div>
     </header>
+    <script src="/controller/hamburger.js" defer></script>
+    <script>
+        $(document).ready(function() {
+            $('.hamburger').click(function() {
+                $('.dropdown-content').toggle();
+            });
+        });
+    </script>
+
 </body>
 </html>

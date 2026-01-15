@@ -17,7 +17,7 @@
             <a href="/flight_booking/view/register.php">Register</a>
 
             <!-- Profile Dropdown -->
-            <div class="dropdown">
+            <!-- <div class="dropdown">
                 <div class="hamburger">
                     <span></span>
                     <span></span>
@@ -26,14 +26,15 @@
                 <div class="dropdown-content">
                     <p>Hello, User!</p>
                     <a href="#">Profile</a>
-                    <!-- <a href="#">View Profile</a> -->
+                    <a href="#">View Profile</a>
                     <a href="#">Edit Profile</a>
-                    <!-- <a href="#">Log Out</a> -->
+                    <a href="#">Log Out</a>
                 </div>
-            </div>
+            </div> -->
         </nav>
     </div>
 </header>
-<script src="../controller/hamburger.js"></script>
+
+
 </body>
 </html>

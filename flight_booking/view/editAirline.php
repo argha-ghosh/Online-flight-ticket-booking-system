@@ -1,6 +1,6 @@
 <?php
 include("../includes/adminheader.php");
-include("../controller/AirlineController.php");
+// include("../controller/AirlineController.php");
 
 // Get the airline ID from the URL parameter
 $id = $_GET['id']; // Ensure this is passed in the URL
