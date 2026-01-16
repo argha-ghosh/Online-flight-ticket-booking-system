@@ -17,7 +17,6 @@ include("../includes/managerheader.php");
     <!-- <section class="Airlines">
         <h3>Airline Management</h3>
          <form action="" enctype="multipart/form-data" method="post">
-            <h3>Add New Airline</h3>
             <input type="text" name="Airline Name" placeholder="Enter Airline Name" class="box" required> 
             <input type="text" name="Country Name" placeholder="Enter Country Name" class="box" required> 
             <input type="text" name="Airline Code" placeholder="Enter Airline Code" class="box" required> 

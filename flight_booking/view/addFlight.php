@@ -15,7 +15,7 @@ $flights = $flightModel->getAllFlights();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Flight</title>
-    <link rel="stylesheet" href="flightstyle.css"> <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="flightstyle.css"> 
 </head>
 <body>
 
@@ -24,15 +24,16 @@ $flights = $flightModel->getAllFlights();
     <!-- ADD FLIGHT FORM -->
     <div class="form-box">
         <h2>Add New Flight</h2>
-        <form action="../controller/FlightController.php" method="POST" enctype="multipart/form-data">
-            <input type="text" name="flight_name" placeholder="Enter Flight Name" class="box" required><br><br>
-            <input type="text" name="airline_name" placeholder="Enter Airline Name" class="box" required><br><br>
-            <input type="text" name="flight_code" placeholder="Enter Flight Code" class="box" required><br><br>
-            <input type="text" name="departure" placeholder="Enter Departure From" class="box" required><br><br>
-            <input type="text" name="arrival" placeholder="Enter Arrival To" class="box" required><br><br>
-            <input type="text" name="duration" placeholder="Enter Time Duration" class="box" required><br><br>
-            <input type="number" step="0.01" name="price" placeholder="Enter Price" class="box"><br><br>
-            <input type="file" name="image" class="box" required><br><br>
+        <form action="../controller/FlightController.php" method="POST" enctype="multipart/form-data" id="addFlightForm">
+            <div id="errorMessages" style="color: red; margin-bottom: 10px;"></div>
+            <input type="text" name="flight_name" id="flight_name" placeholder="Enter Flight Name" class="box" required><br><br>
+            <input type="text" name="airline_name" id="airline_name" placeholder="Enter Airline Name" class="box" required><br><br>
+            <input type="text" name="flight_code" id="flight_code" placeholder="Enter Flight Code" class="box" required><br><br>
+            <input type="text" name="departure" id="departure" placeholder="Enter Departure From" class="box" required><br><br>
+            <input type="text" name="arrival" id="arrival" placeholder="Enter Arrival To" class="box" required><br><br>
+            <input type="text" name="duration" id="duration" placeholder="Enter Time Duration" class="box" required><br><br>
+            <input type="number" step="0.01" name="price" id="price" placeholder="Enter Price" class="box" required><br><br>
+            <input type="file" name="image" id="image" class="box" required accept="image/*"><br><br>
 
             <button type="submit" name="submit" class="btn">Add Flight</button>
         </form>
@@ -60,6 +61,8 @@ $flights = $flightModel->getAllFlights();
     </div>
 
 </div>
+
+<script src="../controller/addFlightValidation.js"></script>
 
 </body>
 </html>

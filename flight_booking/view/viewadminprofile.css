@@ -101,7 +101,7 @@ form .btn-group .btn:hover {
 /* Responsive Design */
 @media (max-width: 768px) {
     form {
-        grid-template-columns: 1fr;  /* Stack the form elements vertically on small screens */
+        grid-template-columns: 1fr;
     }
 
     .profile-container {
