@@ -14,6 +14,19 @@ if (isset($_POST['submit'])) {
     $role   = $_POST['role'];
     $password = password_hash($_POST['pass'], PASSWORD_DEFAULT);
 
+    // Check if email already exists
+    $check_query = "SELECT id FROM login WHERE email = ?";
+    $check_stmt = $conn->prepare($check_query);
+    $check_stmt->bind_param("s", $email);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
+    if ($check_result->num_rows > 0) {
+        echo "Error: Email already exists!";
+        $check_stmt->close();
+        exit;
+    }
+    $check_stmt->close();
+
     $profile_image = "";
     if (!empty($_FILES['image']['name'])) {
         $upload_dir = __DIR__ . "/uploads/";
@@ -50,20 +63,21 @@ if (isset($_POST['submit'])) {
 </head>
 <body>
     <section class="register">
-        <form action="" enctype="multipart/form-data" method="post">
+        <form action="" enctype="multipart/form-data" method="post" id="addUserForm">
+            <div id="errorMessages" style="color: red; margin-bottom: 10px;"></div>
             <h3>Add New User</h3>
-            <input type="text" name="name" placeholder="Enter user name" class="box" required>
-            <input type="number" name="age" placeholder="Enter your age" class="box" required min="1" max="120">
-            <input type="date" name="dob" class="box" required>
-            <input type="tel" name="phone" placeholder="Enter phone number" class="box" required 
+            <input type="text" name="name" id="name" placeholder="Enter user name" class="box" required>
+            <input type="number" name="age" id="age" placeholder="Enter your age" class="box" required min="1" max="120">
+            <input type="date" name="dob" id="dob" class="box" required>
+            <input type="tel" name="phone" id="phone" placeholder="Enter phone number" class="box" required 
                    pattern="[0-9]{11}" title="Enter 11 digit number">
-            <select name="gender" class="box" required>
+            <select name="gender" id="gender" class="box" required>
                 <option value="">Select Gender</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
                 <option value="other">Other</option>
             </select>
-            <select name="city" class="box" required>
+            <select name="city" id="city" class="box" required>
                 <option value="">Select City</option>
                 <option value="Dhaka">Dhaka</option>
                 <option value="Chittagong">Chittagong</option>
@@ -71,18 +85,21 @@ if (isset($_POST['submit'])) {
                 <option value="Rajshahi">Rajshahi</option>
                 <option value="Sylhet">Sylhet</option>
             </select>
-            <input type="email" name="email" placeholder="Enter user email" class="box" required>
-            <input type="password" name="pass" placeholder="Enter user password" class="box" required>
-            <select name="role" class="box" required>
+            <input type="email" name="email" id="email" placeholder="Enter user email" class="box" required>
+            <input type="password" name="pass" id="pass" placeholder="Enter user password" class="box" required>
+            <select name="role" id="role" class="box" required>
                 <option value="" disabled selected>Select Role</option>
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
             </select>
-            <input type="file" name="image" accept="image/jpg, image/jpeg, image/png" class="box" required> 
+            <input type="file" name="image" id="image" accept="image/jpg, image/jpeg, image/png" class="box" required> 
 
-            <input type="submit" value="Add User" class="btn" name="submit">
+            <input type="submit" value="Add User" class="btn" name="submit" id="submitBtn">
         </form>
     </section>
+
+<script src="../controller/addUserValidation.js"></script>
+
 </body>
 </html>
 

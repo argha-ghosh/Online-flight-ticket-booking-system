@@ -29,7 +29,7 @@ if (isset($_POST['submit'])) {
     $stmt2->bind_param("sss", $email, $password, $role);
     $stmt2->execute();
 
-    header("Location: add_users.php");
+    header("Location: add_user.php");
     exit;
 }
 ?>
