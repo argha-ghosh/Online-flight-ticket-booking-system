@@ -1,0 +1,134 @@
+ .flights-container {
+            width: 95%;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .flights-container h2 {
+            text-align: center;
+            color: #0b72e6;
+            margin-bottom: 20px;
+        }
+
+        .flights-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .flights-table thead {
+            background-color: #0b72e6;
+            color: white;
+        }
+
+        .flights-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #ddd;
+        }
+
+        .flights-table td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+        }
+
+        .flights-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .flights-table tbody tr:hover {
+            background-color: #f0f8ff;
+        }
+
+        .flight-image {
+            width: 80px;
+            height: 60px;
+            border-radius: 5px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .edit-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background-color: #218838;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .no-flights {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .search-section {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-section form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-section input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 300px;
+        }
+
+        .search-section button {
+            padding: 10px 20px;
+            background-color: #0b72e6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .search-section button:hover {
+            background-color: #0a5dbd;
+        }
+
+        .clear-btn {
+            background-color: #6c757d !important;
+        }
+
+        .clear-btn:hover {
+            background-color: #5a6268 !important;
+        }

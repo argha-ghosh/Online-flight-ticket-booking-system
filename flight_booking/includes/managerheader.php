@@ -19,7 +19,7 @@
             cursor: pointer;
             padding: 10px;
         }
-
+ 
         .hamburger span {
             display: block;
             width: 30px;
@@ -27,7 +27,7 @@
             background-color: white;
             border-radius: 5px;
         }
-
+ 
         .dropdown-content {
             display: none;
             position: absolute;
@@ -39,22 +39,22 @@
             border-radius: 5px;
             padding: 10px;
         }
-
+ 
         .dropdown-content.show {
             display: block;
         }
-
+ 
         .dropdown-content a {
             color: black;
             padding: 12px 16px;
             text-decoration: none;
             display: block;
         }
-
+ 
         .dropdown-content a:hover {
             background-color: #ddd;
         }
-
+ 
         @media screen and (max-width: 768px) {
             nav a {
                 display: none;
@@ -71,11 +71,11 @@
             <h1>Welcome Manager</h1>
             <nav>
                 <a href="/flight_booking/view/home.php">Home</a>
-                <a href="#">Manage Flights</a>
+                <a href="/flight_booking/view/managerdemo.php">Manage Flights</a>
                 <a href="#">Manage Seats</a>
-                <a href="#">Update Price</a> 
+                <a href="#">Update Price</a>
                 <!-- <a href="/flight_booking/view/adduser.php">Update Price</a>  -->
-
+ 
                 <!-- Dropdown -->
                 <div class="dropdown">
                     <div class="hamburger" onclick="toggleDropdown()">
@@ -85,19 +85,19 @@
                     </div>
                     <div class="dropdown-content">
                         <p>Hello, Manager!</p>
-                        <a href="#">View Profile</a>
+                        <a href="/flight_booking/view/viewmanagerprofile.php">View Profile</a>
                         <a href="/flight_booking/view/login.php">Log Out</a>
                     </div>
                 </div>
             </nav>
         </div>
     </header>
-
+ 
     <script>
         function toggleDropdown() {
             document.querySelector('.dropdown-content').classList.toggle('show');
         }
-
+ 
         window.onclick = function(event) {
             if (!event.target.matches('.hamburger') && !event.target.matches('.dropdown-content') && !event.target.closest('.dropdown')) {
                 var dropdowns = document.getElementsByClassName("dropdown-content");

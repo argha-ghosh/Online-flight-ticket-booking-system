@@ -2,6 +2,7 @@
 session_start();
 include("../model/db_conn.php");
 
+include("../includes/managerheader.php");
 $error = "";
 
 if (isset($_POST['submit'])) {

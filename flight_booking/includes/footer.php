@@ -3,15 +3,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoZayan</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
-
+ 
     <link rel ="stylesheet" href= "component.css">
 </head>
-
+ 
 <footer>
     <div class="footer-container">
         <p>&copy; <?php echo date("Y"); ?> GoZayan. All rights reserved.</p>
         <p>
-            <a href="#">Privacy Policy</a> | 
+            <a href="#">Privacy Policy</a> |
             <a href="#">Terms & Conditions</a>
         </p>
         <div class="social-icons">
@@ -21,7 +21,7 @@
         </div>
         <div class="contact-info">
             <span>Email: support@gozayan.com</span>
-            <span>Phone: +880 1720202222</span>
+            <span>Phone: +880 1721104949</span>
             <span>Address: Dhaka, Bangladesh</span>
         </div>
     </div>
