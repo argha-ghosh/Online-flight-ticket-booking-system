@@ -6,6 +6,7 @@
     <title>GoZayan</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
     <link rel="stylesheet" href="component.css">
+    <link rel="stylesheet" href="changePassword.css">
     <style>
         nav {
             display: flex;
@@ -85,7 +86,8 @@
                     <div class="dropdown-content">
                         <p>Hello, Admin!</p>
                         <a href="/flight_booking/view/adminprofile.php">View Profile</a>
-                        <a href="/flight_booking/view/login.php">Log Out</a>
+                        <a href="/flight_booking/view/changePassword.php">Change Password</a>
+                        <a href="/flight_booking/view/home.php">Log Out</a>
                     </div>
                 </div>
             </nav>
