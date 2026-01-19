@@ -36,7 +36,12 @@ if (isset($_POST['submit'])) {
                 } elseif ($user['role'] === 'manager') {
                     header("Location: managerdemo.php");
                     exit;
-                } else {
+                }
+                elseif ($user['role'] === 'webuser') {
+                    header("Location: ../view/userhome.php");
+                    exit;       
+                }
+                else {
                     $error = "Your role is not recognized.";
                 }
 
