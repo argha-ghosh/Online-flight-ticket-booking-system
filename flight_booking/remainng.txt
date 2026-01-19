@@ -1,5 +1,6 @@
-After edit save button work
-
+Password won't change in database
+Viewmanagerprofile readonly
+date showing 00.00
 
 
 Authentication 

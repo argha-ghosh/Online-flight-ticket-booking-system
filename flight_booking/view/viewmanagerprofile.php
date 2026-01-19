@@ -27,9 +27,9 @@ if (isset($_POST['save'])) {
 
     // Handle profile image upload
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['size'] > 0) {
-        $upload_dir = "../uploads/";
+        $upload_dir = "../view/uploadss/";
         
-        // Create uploads directory if it doesn't exist
+        // Create uploadss directory if it doesn't exist
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
         }
@@ -123,7 +123,7 @@ if (isset($_POST['save'])) {
 
         <label>Profile Image:</label>
         <?php
-            $image_path = "../uploads/" . $manager['profile_image'];
+            $image_path = "../view/uploadss/" . $manager['profile_image'];
             if (!empty($manager['profile_image']) && file_exists($image_path)) {
                 echo '<img src="' . $image_path . '" alt="Profile Image" class="profile-image" />';
             } else {

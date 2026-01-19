@@ -328,4 +328,6 @@ $schedules_result = $conn->query($schedules_query);
 </html>
 
 <script src="../controller/managerdemo.js"></script>
+
+<?php include("../includes/footer.php"); ?>
  

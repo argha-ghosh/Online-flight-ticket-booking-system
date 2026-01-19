@@ -13,8 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
         $message = "All fields are required.";
     } elseif ($new_pass !== $confirm_pass) {
         $message = "New password and confirm password do not match.";
-    } elseif (strlen($new_pass) < 8) {
-        $message = "New password must be at least 8 characters long.";
+    } elseif (strlen($new_pass) < 4) {
+        $message = "New password must be at least 4 characters long.";
     } else {
         // Get user from session
         $email = $_SESSION['email'];
@@ -31,6 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
                 $update_stmt = $conn->prepare("UPDATE login SET password = ? WHERE email = ?");
                 $update_stmt->bind_param("ss", $hashed_new_pass, $email);
                 if ($update_stmt->execute()) {
+                    // Also update admininfo table
+                    $admininfo_update_stmt = $conn->prepare("UPDATE admininfo SET password = ? WHERE email = ?");
+                    $admininfo_update_stmt->bind_param("ss", $hashed_new_pass, $email);
+                    $admininfo_update_stmt->execute();
+                    $admininfo_update_stmt->close();
                     $message = "Password changed successfully.";
                 } else {
                     $message = "Error updating password.";
