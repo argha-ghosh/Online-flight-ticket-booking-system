@@ -11,8 +11,7 @@ include("../includes/header.php");
     <title>Register Now</title>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
-
-    <link rel ="stylesheet" href= "component.css">
+    <link rel="stylesheet" href="register.css">
 </head>
 <body>
     <section class="register">

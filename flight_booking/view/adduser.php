@@ -59,12 +59,12 @@ if (isset($_POST['submit'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register Now</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
-    <link rel="stylesheet" href="component.css">
+    <link rel="stylesheet" href="adduser.css">
 </head>
 <body>
     <section class="register">
         <form action="" enctype="multipart/form-data" method="post" id="addUserForm">
-            <div id="errorMessages" style="color: red; margin-bottom: 10px;"></div>
+            <!-- <div id="errorMessages" style="color: red; margin-bottom: 10px;"></div> -->
             <h3>Add New User</h3>
             <input type="text" name="name" id="name" placeholder="Enter user name" class="box" required>
             <input type="number" name="age" id="age" placeholder="Enter your age" class="box" required min="1" max="120">
