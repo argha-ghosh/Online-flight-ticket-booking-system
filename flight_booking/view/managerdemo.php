@@ -37,19 +37,30 @@ function extractTime($timeValue) {
         return '00:00';
     }
     
+    // Convert to string in case it's not
+    $timeValue = (string)$timeValue;
+    
     // If it's already in HH:MM format, return as is
     if (strlen($timeValue) == 5 && strpos($timeValue, ':') !== false) {
         return $timeValue;
     }
     
-    // If it contains a space (datetime format), extract only the time portion
+    // If it contains a space (datetime format like "2000-01-01 12:30:00"), extract the time
     if (strpos($timeValue, ' ') !== false) {
-        $timePart = explode(' ', $timeValue)[1];
+        $parts = explode(' ', $timeValue);
+        $timePart = end($parts); // Get the time part
         return substr($timePart, 0, 5); // Get HH:MM
     }
     
-    // Extract first 5 characters for HH:MM format
-    return substr($timeValue, 0, 5);
+    // If it's a full datetime format (YYYY-MM-DD HH:MM:SS), extract time portion
+    if (strlen($timeValue) >= 8 && strpos($timeValue, ':') !== false) {
+        $matches = [];
+        if (preg_match('/(\d{2}):(\d{2}):?(\d{2})?/', $timeValue, $matches)) {
+            return $matches[1] . ':' . $matches[2]; // Return HH:MM
+        }
+    }
+    
+    return '00:00'; // Fallback
 }
 
 // Handle search
@@ -100,6 +111,10 @@ if (isset($_POST['save_schedule'])) {
     } else if (empty($departure_from) || empty($arrival_to)) {
         $schedule_message = "❌ Please select departure and arrival days!";
     } else {
+        // Ensure proper time format: Append ':00' to match HH:MM:SS format
+        $departure_time .= ':00';
+        $arrival_time .= ':00';
+        
         // Check if flight code already exists
         $check_query = "SELECT * FROM schedule WHERE flight_code = ?";
         $check_stmt = $conn->prepare($check_query);

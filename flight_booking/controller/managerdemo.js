@@ -30,14 +30,23 @@ function fetchFlightDetails() {
 
 // Populate form with schedule data for editing
 function editSchedule(flightCode, flightName, airlineName, departureDay, departureTime, arrivalDay, arrivalTime) {
+    // Extract just HH:MM from any time format
+    const extractTimeOnly = (timeStr) => {
+        if (!timeStr) return '';
+        // Remove any date part and extra characters
+        const parts = String(timeStr).split(' ');
+        const timePart = parts[parts.length - 1]; // Get last part (the time)
+        return timePart.substring(0, 5); // Get only HH:MM
+    };
+    
     // Populate form fields
     document.getElementById('flight_code').value = flightCode;
     document.getElementById('flight_name').value = flightName;
     document.getElementById('airline_name').value = airlineName;
     document.querySelector('select[name="departure_from"]').value = departureDay;
-    document.querySelector('input[name="departure_time"]').value = departureTime;
+    document.querySelector('input[name="departure_time"]').value = extractTimeOnly(departureTime);
     document.querySelector('select[name="arrival_to"]').value = arrivalDay;
-    document.querySelector('input[name="arrival_time"]').value = arrivalTime;
+    document.querySelector('input[name="arrival_time"]').value = extractTimeOnly(arrivalTime);
     
     // Scroll to the form
     document.querySelector('.schedule-container').scrollIntoView({ behavior: 'smooth' });
@@ -67,18 +76,7 @@ function validateScheduleForm() {
         alert('❌ Please select arrival day and time!');
         return false;
     }
-    
-    // Validate time format (HH:MM)
-    if (!/^\d{2}:\d{2}$/.test(departureTime)) {
-        alert('❌ Invalid departure time format! Use HH:MM');
-        return false;
-    }
-    
-    if (!/^\d{2}:\d{2}$/.test(arrivalTime)) {
-        alert('❌ Invalid arrival time format! Use HH:MM');
-        return false;
-    }
-    
+      
     console.log('Form Data:', { flightCode, flightName, airlineName, departureDay, departureTime, arrivalDay, arrivalTime });
     return true;
 }

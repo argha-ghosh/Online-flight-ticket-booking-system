@@ -1,6 +1,7 @@
 <?php
 session_start();
 include("../model/db_conn.php");
+include("../includes/header.php"); 
 
 $error = "";
 
@@ -68,7 +69,7 @@ if (isset($_POST['submit'])) {
 </head>
 <body>
 
-<?php include("../includes/header.php"); ?>
+
 
 <section class="login">
     <form action="" method="post">

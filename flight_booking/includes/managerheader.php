@@ -72,9 +72,8 @@
             <nav>
                 <a href="/flight_booking/view/home.php">Home</a>
                 <a href="/flight_booking/view/managerdemo.php">Manage Flights</a>
-                <a href="#">Manage Seats</a>
-                <a href="#">Update Price</a>
-                <!-- <a href="/flight_booking/view/adduser.php">Update Price</a>  -->
+                <a href="/flight_booking/view/manageSeatupdatePrice.php">Manage Seats & Update Price</a>
+              
  
                 <!-- Dropdown -->
                 <div class="dropdown">
@@ -87,6 +86,7 @@
                         <p>Hello, Manager!</p>
                         <a href="/flight_booking/view/viewmanagerprofile.php">View Profile</a>
                         <a href="/flight_booking/view/login.php">Log Out</a>
+                        <a href="/flight_booking/view/changeManagerPass.php">Change PassWord</a>
                     </div>
                 </div>
             </nav>
