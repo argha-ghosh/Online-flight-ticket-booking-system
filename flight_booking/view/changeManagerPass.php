@@ -52,7 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
 }
 ?>
 
-<?php include("../includes/adminheader.php"); ?>
+<?php include("../includes/managerheader.php"); ?>
+<link rel="stylesheet" href="changeManagerPass.css">
 
 <div class="changePassword">
     <form action="" method="post">
