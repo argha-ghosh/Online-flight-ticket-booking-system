@@ -257,7 +257,7 @@ include("../includes/header.php");
             <div class="icon">🎫</div>
             <h3>No bookings found</h3>
             <p>You haven't made any <?= $status_filter !== 'all' ? $status_filter : '' ?> bookings yet.</p>
-            <a href="passengerHome.php" class="btn-search">Search Flights</a>
+            <a href="searchflights.php" class="btn-search">Search Flights</a>
         </div>
     <?php endif; ?>
 </div>

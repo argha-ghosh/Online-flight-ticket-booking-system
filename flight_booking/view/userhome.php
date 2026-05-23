@@ -157,7 +157,7 @@ if ($is_logged_in) {
     <div class="hero-banner">
         <h1>Welcome back, <?= htmlspecialchars($user['name']) ?> ✈️</h1>
         <p>Ready for your next adventure? Search and book your flights below.</p>
-        <a href="passengerHome.php" class="btn-white">Search Flights</a>
+        <a href="searchflights.php" class="btn-white">Search Flights</a>
     </div>
 
     <!-- STATS -->
@@ -176,7 +176,7 @@ if ($is_logged_in) {
     <div class="section">
         <h2>Quick Actions</h2>
         <div class="cards-grid">
-            <a href="passengerHome.php" class="action-card">
+            <a href="searchflights.php" class="action-card">
                 <div class="icon">🔍</div>
                 <h3>Search Flights</h3>
                 <p>Find and compare available flights</p>
@@ -249,7 +249,7 @@ if ($is_logged_in) {
     <div class="hero-banner">
         <h1>✈️ GoZayan Flight Booking</h1>
         <p>Search for flights freely. Login to book your seat.</p>
-        <a href="passengerHome.php" class="btn-white">Search Flights</a>
+        <a href="searchflights.php" class="btn-white">Search Flights</a>
     </div>
 
     <div class="guest-banner">

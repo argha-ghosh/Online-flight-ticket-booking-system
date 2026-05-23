@@ -233,7 +233,7 @@ include("../includes/header.php");
                 <div class="lbl">Total Bookings</div>
             </div>
             <div class="stat-item">
-                <div class="num">৳<?= number_format($total_spent, 0) ?></div>
+                <div class="num">$<?= number_format($total_spent, 0) ?></div>
                 <div class="lbl">Total Spent</div>
             </div>
             <div class="stat-item">
@@ -277,7 +277,7 @@ include("../includes/header.php");
 
     <!-- QUICK LINKS -->
     <div class="quick-links">
-        <a href="passengerHome.php" class="quick-link">
+        <a href="searchflights.php" class="quick-link">
             <div class="ql-icon">🔍</div>
             <div class="ql-label">Search Flights</div>
         </a>

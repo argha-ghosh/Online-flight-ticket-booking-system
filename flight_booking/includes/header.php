@@ -94,9 +94,9 @@ if ($is_webuser && isset($_SESSION['email'])) {
     <div class="header-container">
         <h1><a href="/flight_booking/view/home.php" style="color:white;text-decoration:none;">GoZayan</a></h1>
         <nav>
-            <a href="/flight_booking/view/home.php">Home</a>
-            <a href="/flight_booking/view/passengerHome.php">Search Flights</a>
-
+            <a href="/flight_booking/view/searchflights.php">Search Flights</a>
+            <!-- <a href="/flight_booking/view/home.php">Home</a> -->
+            
             <?php if ($is_webuser): ?>
                 <a href="/flight_booking/view/myBookings.php">My Bookings</a>
 
@@ -114,14 +114,14 @@ if ($is_webuser && isset($_SESSION['email'])) {
                     </div>
                     <div class="dropdown-content" id="userDropdown">
                         <div class="dropdown-user-info">
-                            <img src="<?= $avatar_src ?>" class="d-avatar" alt="">
+                            <!-- <img src="<?= $avatar_src ?>" class="d-avatar" alt=""> -->
                             <div>
                                 <div class="d-name"><?= htmlspecialchars($user_name) ?></div>
                                 <div class="d-role">&#9992; GoZayan Traveller</div>
                             </div>
                         </div>
                         <a href="/flight_booking/view/userhome.php">&#127968; Dashboard</a>
-                        <a href="/flight_booking/view/passengerHome.php">&#128269; Search Flights</a>
+                        <a href="/flight_booking/view/searchflights.php">&#128269; Search Flights</a>
                         <a href="/flight_booking/view/myBookings.php">&#127915; My Bookings</a>
                         <a href="/flight_booking/view/passengerProfile.php">&#128100; My Profile</a>
                         <a href="/flight_booking/view/changePassword.php">&#128274; Change Password</a>

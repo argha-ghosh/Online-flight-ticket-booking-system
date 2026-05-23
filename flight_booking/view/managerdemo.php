@@ -31,6 +31,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'get_flight') {
 
 include("../includes/managerheader.php");
 
+
 // Helper function to extract time from database value
 function extractTime($timeValue) {
     if (empty($timeValue)) {

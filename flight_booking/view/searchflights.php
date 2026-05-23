@@ -352,11 +352,11 @@ $total_passengers = $adults + $children;
         <div class="form-row">
             <div class="form-group">
                 <label>From</label>
-                <input type="text" name="from" placeholder="e.g. Dhaka" value="<?= htmlspecialchars($from) ?>" required>
+                <input type="text" name="from" placeholder="Departure From" value="<?= htmlspecialchars($from) ?>" required>
             </div>
-            <div class="form-group">
+                <div class="form-group">
                 <label>To</label>
-                <input type="text" name="to" placeholder="e.g. Chittagong" value="<?= htmlspecialchars($to) ?>" required>
+                <input type="text" name="to" placeholder="Arrival To" value="<?= htmlspecialchars($to) ?>" required>
             </div>
             <div class="form-group">
                 <label>Depart Date</label>
@@ -427,15 +427,15 @@ $total_passengers = $adults + $children;
             <div class="filter-card-body">
                 <div class="price-range-wrap">
                     <div class="price-range-labels">
-                        <span>৳<?= number_format($min_price) ?></span>
-                        <span>৳<?= number_format($max_price) ?></span>
+                        <span>$<?= number_format($min_price) ?></span>
+                        <span>$<?= number_format($max_price) ?></span>
                     </div>
                     <input type="range" id="priceRange"
                            min="<?= $min_price ?>" max="<?= $max_price ?>"
                            value="<?= $max_price ?>"
                            oninput="filterByPrice(this.value)">
                     <div class="price-display">
-                        Up to <b id="priceDisplay">৳<?= number_format($max_price) ?></b>
+                        Up to <b id="priceDisplay">$<?= number_format($max_price) ?></b>
                     </div>
                 </div>
             </div>
@@ -458,7 +458,7 @@ $total_passengers = $adults + $children;
                             <div class="airline-logo"><?= htmlspecialchars($initials) ?></div>
                             <?= htmlspecialchars($airline) ?>
                         </label>
-                        <span class="airline-min-price">৳<?= number_format($min_p) ?></span>
+                        <span class="airline-min-price">$<?= number_format($min_p) ?></span>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -577,8 +577,8 @@ $total_passengers = $adults + $children;
 
                     <div class="flight-pricing">
                         <div class="price-label">Total Price</div>
-                        <div class="price-amount">৳<?= number_format($total_price, 0) ?></div>
-                        <div class="per-person">৳<?= number_format($flight['price'], 0) ?> / person</div>
+                        <div class="price-amount">$<?= number_format($total_price, 0) ?></div>
+                        <div class="per-person">$<?= number_format($flight['price'], 0) ?> / person</div>
                         <?php if ($seats_left > 0 && $seats_left <= 10): ?>
                             <div class="seats-left">⚠️ Only <?= $seats_left ?> left!</div>
                         <?php endif; ?>
@@ -629,19 +629,19 @@ $total_passengers = $adults + $children;
     <div class="popular-grid">
         <div class="popular-card" onclick="fillSearch('Dhaka','Chittagong')">
             <div class="route-text">Dhaka → Chittagong</div>
-            <div class="route-price">From ৳2,500</div>
+            <div class="route-price">From $2,500</div>
         </div>
         <div class="popular-card" onclick="fillSearch('Dhaka','Sylhet')">
             <div class="route-text">Dhaka → Sylhet</div>
-            <div class="route-price">From ৳3,000</div>
+            <div class="route-price">From $3,000</div>
         </div>
         <div class="popular-card" onclick="fillSearch('Dhaka','Rajshahi')">
             <div class="route-text">Dhaka → Rajshahi</div>
-            <div class="route-price">From ৳2,800</div>
+            <div class="route-price">From $2,800</div>
         </div>
         <div class="popular-card" onclick="fillSearch('Chittagong','Dhaka')">
             <div class="route-text">Chittagong → Dhaka</div>
-            <div class="route-price">From ৳2,500</div>
+            <div class="route-price">From $2,500</div>
         </div>
     </div>
 </div>
@@ -679,7 +679,7 @@ function toggleSeat(key, el) {
 // ── PRICE ──
 function filterByPrice(val) {
     currentPrice = parseInt(val);
-    document.getElementById('priceDisplay').textContent = '৳' + parseInt(val).toLocaleString('en-BD');
+    document.getElementById('priceDisplay').textContent = '' + parseInt(val).toLocaleString('en-BD');
     applyFilters();
 }
 
