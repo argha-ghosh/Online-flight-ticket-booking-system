@@ -298,12 +298,12 @@ include("../includes/header.php");
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Price per person</span>
-                    <span class="val">৳<?= number_format($flight['price'], 2) ?></span>
+                    <span class="val">$<?= number_format($flight['price'], 2) ?></span>
                 </div>
 
                 <div class="price-total">
                     <div class="label">Total Amount</div>
-                    <div class="amount">৳<?= number_format($total_price, 2) ?></div>
+                    <div class="amount">$<?= number_format($total_price, 2) ?></div>
                 </div>
             </div>
         </div>
@@ -368,7 +368,7 @@ include("../includes/header.php");
                 </div>
 
                 <button type="submit" name="pay_now" class="pay-btn">
-                    🔒 Pay ৳<?= number_format($total_price, 2) ?>
+                    🔒 Pay $<?= number_format($total_price, 2) ?>
                 </button>
                 <div class="secure-note">🔐 Your payment is encrypted and secure</div>
             </div>
