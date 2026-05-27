@@ -3,6 +3,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Prevent caching of authenticated pages
+if (isset($_SESSION['role'])) {
+    header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+    header("Pragma: no-cache");
+    header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+}
+
 $is_webuser = isset($_SESSION['role']) && $_SESSION['role'] === 'webuser';
 $user_name = '';
 $user_image = '';
@@ -98,7 +105,7 @@ if ($is_webuser && isset($_SESSION['email'])) {
             <!-- <a href="/flight_booking/view/home.php">Home</a> -->
             
             <?php if ($is_webuser): ?>
-                <a href="/flight_booking/view/myBookings.php">My Bookings</a>
+                <a href="/flight_booking/view/userhome.php">Dashboard</a>
 
                 <div class="dropdown">
                     <div class="user-trigger" onclick="toggleDropdown()">
@@ -146,4 +153,26 @@ window.onclick = function(e) {
         document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
     }
 }
+
+// Force reload when page is restored from bfcache (back/forward navigation after logout)
+window.addEventListener('pageshow', function(e) {
+    if (e.persisted) {
+        window.location.reload();
+    }
+});
+
+// Also ping the server to verify session is still valid every time the page becomes visible
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+        fetch('/flight_booking/view/session_check.php', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                const isLoggedIn = <?= $is_webuser ? 'true' : 'false' ?>;
+                if (isLoggedIn && !data.logged_in) {
+                    window.location.reload();
+                }
+            })
+            .catch(() => {});
+    }
+});
 </script>

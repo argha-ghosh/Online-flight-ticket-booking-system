@@ -18,7 +18,7 @@ include("../includes/header.php");
   <div class="hero-overlay">
     <h1>Fly Smarter with GoZayan</h1>
     <p>Your journey begins here. Book flights faster, cheaper, and easier.</p>
-    <a href="login.php" class="btn">Book Your Flight</a>
+    <a href="searchflights.php" class="btn">Book Your Flight</a>
 
     <section class="features">
       <h2>Why Choose GoZayan?</h2>

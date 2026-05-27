@@ -4,12 +4,10 @@ $role = $_SESSION['role'] ?? '';
 session_unset();
 session_destroy();
 
-// Redirect based on who was logged in
-if ($role === 'admin') {
-    header("Location: /flight_booking/view/login.php");
-} elseif ($role === 'manager') {
-    header("Location: /flight_booking/view/login.php");
-} else {
-    header("Location: /flight_booking/view/home.php");
-}
+// Prevent browser from caching — stops back button showing logged-in header
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+
+header("Location: /flight_booking/view/home.php");
 exit;
