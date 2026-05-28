@@ -1,72 +1,596 @@
 <?php
-include("../model/db_conn.php");
-include("../includes/adminheader.php");
-?>
+// Controller MUST run first — it may call header() to redirect.
+require_once "../controller/FlightController.php";
 
-<?php
+// Consume flash message
+$flash_msg  = $_SESSION['flight_msg']      ?? '';
+$flash_type = $_SESSION['flight_msg_type'] ?? '';
+unset($_SESSION['flight_msg'], $_SESSION['flight_msg_type']);
+
+// Fetch all flights for display
 require_once "../model/FlightModel.php";
 $flightModel = new FlightModel();
-$flights = $flightModel->getAllFlights();
+$flightsResult = $flightModel->getAllFlights();
+$flights = [];
+while ($row = $flightsResult->fetch_assoc()) { $flights[] = $row; }
+
+include("../includes/adminheader.php");
 ?>
+<style>
+/* ── Page wrapper ── */
+.fl-page {
+    flex: 1;
+    padding: 32px 32px 60px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+/* ── Title bar ── */
+.fl-titlebar {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+}
+.fl-titlebar-left { display: flex; align-items: center; gap: 14px; }
+.fl-titlebar-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #0b72e6, #6c3de8);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 14px rgba(11,114,230,0.3); flex-shrink: 0;
+}
+.fl-titlebar h1 { font-size: 1.4rem; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; }
+.fl-titlebar p  { font-size: 0.82rem; color: #64748b; margin-top: 2px; }
+.fl-count-pill {
+    background: linear-gradient(135deg, #0b72e6, #6c3de8);
+    color: #fff; font-size: 0.8rem; font-weight: 700;
+    padding: 6px 16px; border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(11,114,230,0.25); white-space: nowrap;
+}
+</style>
+<style>
+/* ── Flash ── */
+.fl-flash {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px; border-radius: 12px;
+    font-size: 0.88rem; font-weight: 600;
+    margin-bottom: 20px; animation: flFadeIn 0.3s ease;
+}
+@keyframes flFadeIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+.fl-flash.success { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; }
+.fl-flash.error   { background:#fff5f5; border:1px solid #fecaca; color:#dc2626; }
+.fl-flash .fl-close {
+    margin-left:auto; cursor:pointer; opacity:0.5; font-size:1rem;
+    background:none; border:none; color:inherit; padding:0; font-family:inherit;
+}
+.fl-flash .fl-close:hover { opacity:1; }
+/* ── Layout ── */
+.fl-layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 28px; align-items: start;
+}
+/* ── Form Panel ── */
+.fl-form-panel {
+    background: #fff; border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(11,114,230,0.1);
+    border: 1px solid #e8f0fb; overflow: hidden;
+    position: sticky; top: 76px;
+}
+.fl-form-header {
+    background: linear-gradient(135deg, #0b72e6, #6c3de8);
+    padding: 20px 24px; display: flex; align-items: center; gap: 12px;
+}
+.fl-form-header-icon {
+    width: 40px; height: 40px; background: rgba(255,255,255,0.2);
+    border-radius: 10px; display: flex; align-items: center;
+    justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+}
+.fl-form-header h2 { color:#fff; font-size:1rem; font-weight:700; margin:0; }
+.fl-form-header span { color:rgba(255,255,255,0.7); font-size:0.76rem; display:block; margin-top:2px; }
+.fl-form-body { padding: 22px 24px 24px; }
+/* Section label */
+.fl-section {
+    font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1px; color: #94a3b8;
+    margin: 18px 0 12px; display: flex; align-items: center; gap: 8px;
+}
+.fl-section::after { content:''; flex:1; height:1px; background:#f1f5f9; }
+/* Fields */
+.fl-field { margin-bottom: 14px; }
+.fl-field label {
+    display: block; font-size: 0.74rem; font-weight: 700;
+    color: #475569; text-transform: uppercase;
+    letter-spacing: 0.6px; margin-bottom: 5px;
+}
+.fl-field label .req { color:#e53e3e; margin-left:2px; }
+.fl-wrap { position: relative; }
+.fl-wrap .fl-ico {
+    position: absolute; left: 13px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem; pointer-events: none; line-height:1; z-index:1;
+}
+.fl-wrap.ta-wrap .fl-ico { top:12px; transform:none; }
+.fl-wrap input,
+.fl-wrap textarea,
+.fl-wrap select {
+    width: 100%; padding: 10px 12px 10px 38px;
+    border: 1.5px solid #e2e8f0; border-radius: 10px;
+    font-size: 0.88rem; color: #1e293b; background: #f8fafc;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    outline: none; font-family: inherit; appearance: none;
+}
+.fl-wrap input:focus,
+.fl-wrap textarea:focus,
+.fl-wrap select:focus {
+    border-color: #0b72e6; background: #fff;
+    box-shadow: 0 0 0 3px rgba(11,114,230,0.1);
+}
+.fl-wrap input::placeholder,
+.fl-wrap textarea::placeholder { color: #b0bec5; }
+.fl-wrap textarea { resize:vertical; min-height:80px; padding-top:10px; }
+/* Select arrow */
+.fl-sel-wrap { position: relative; }
+.fl-sel-wrap::after {
+    content:'▾'; position:absolute; right:12px; top:50%;
+    transform:translateY(-50%); color:#94a3b8;
+    pointer-events:none; font-size:0.8rem;
+}
+.fl-sel-wrap select { padding-right:30px; cursor:pointer; }
+/* Two-col row */
+.fl-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+/* Error box */
+#flErrorMessages {
+    background:#fff5f5; border:1px solid #fecaca; border-radius:10px;
+    padding:10px 14px; font-size:0.84rem; color:#dc2626;
+    margin-bottom:14px; display:none;
+}
+#flErrorMessages:not(:empty) { display:block; }
+</style>
+<style>
+/* File upload zone */
+.fl-file-zone {
+    border:2px dashed #c7d8f0; border-radius:10px;
+    padding:16px 14px; text-align:center; background:#f8fafc;
+    cursor:pointer; transition:border-color 0.2s, background 0.2s; position:relative;
+}
+.fl-file-zone:hover { border-color:#0b72e6; background:#f0f7ff; }
+.fl-file-zone input[type="file"] {
+    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+}
+.fl-file-zone .fz-icon { font-size:1.6rem; display:block; margin-bottom:4px; }
+.fl-file-zone .fz-text { font-size:0.78rem; color:#64748b; line-height:1.5; }
+.fl-file-zone .fz-text b { color:#0b72e6; }
+/* Submit */
+.fl-submit {
+    width:100%; padding:13px;
+    background:linear-gradient(135deg,#0b72e6,#6c3de8);
+    color:#fff; border:none; border-radius:11px;
+    font-size:0.95rem; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow:0 4px 16px rgba(11,114,230,0.3);
+    margin-top:10px; font-family:inherit;
+}
+.fl-submit:hover { opacity:0.9; transform:translateY(-2px); box-shadow:0 8px 22px rgba(11,114,230,0.38); }
+.fl-submit:active { transform:translateY(0); }
+/* ── List Panel ── */
+.fl-list-panel {
+    background:#fff; border-radius:20px;
+    box-shadow:0 4px 24px rgba(11,114,230,0.1);
+    border:1px solid #e8f0fb; overflow:hidden;
+}
+.fl-list-header {
+    padding:16px 24px; border-bottom:1px solid #f1f5f9;
+    display:flex; align-items:center; justify-content:space-between; background:#fafcff;
+}
+.fl-list-header h2 {
+    font-size:1rem; font-weight:700; color:#0f172a;
+    display:flex; align-items:center; gap:8px;
+}
+.fl-list-header h2::before {
+    content:''; display:inline-block; width:3px; height:1.1em;
+    background:linear-gradient(180deg,#0b72e6,#6c3de8); border-radius:3px;
+}
+.fl-list-body { padding:20px 24px 24px; }
+/* Search */
+.fl-search-wrap { position:relative; margin-bottom:18px; }
+.fl-search-wrap input {
+    width:100%; padding:10px 14px 10px 38px;
+    border:1.5px solid #e2e8f0; border-radius:10px;
+    font-size:0.88rem; background:#f8fafc; outline:none;
+    font-family:inherit; color:#1e293b;
+    transition:border-color 0.2s, box-shadow 0.2s;
+}
+.fl-search-wrap input:focus { border-color:#0b72e6; background:#fff; box-shadow:0 0 0 3px rgba(11,114,230,0.1); }
+.fl-search-wrap .s-ico { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:0.9rem; pointer-events:none; }
+/* Grid */
+.fl-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
+</style>
+<style>
+/* Flight card */
+.fl-card {
+    border:1px solid #e8f0fb; border-radius:16px; overflow:hidden;
+    background:#fff; transition:transform 0.22s, box-shadow 0.22s;
+    display:flex; flex-direction:column;
+}
+.fl-card:hover { transform:translateY(-5px); box-shadow:0 12px 32px rgba(11,114,230,0.14); }
+.fl-card-img {
+    height:110px; background:linear-gradient(135deg,#eef4ff,#f3eeff);
+    display:flex; align-items:center; justify-content:center;
+    padding:12px; position:relative; overflow:hidden;
+}
+.fl-card-img img {
+    max-width:100%; max-height:86px; object-fit:cover;
+    border-radius:10px; box-shadow:0 2px 12px rgba(0,0,0,0.1);
+}
+.fl-status-badge {
+    position:absolute; top:8px; right:8px;
+    font-size:0.65rem; font-weight:700; padding:3px 8px;
+    border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;
+}
+.fl-status-badge.active   { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; }
+.fl-status-badge.inactive { background:#fee2e2; color:#dc2626; border:1px solid #fecaca; }
+.fl-status-badge.cancelled{ background:#fef9c3; color:#92400e; border:1px solid #fde68a; }
+.fl-card-body {
+    padding:14px 16px 10px; flex:1;
+    display:flex; flex-direction:column; gap:7px;
+}
+.fl-card-body h3 {
+    font-size:0.95rem; font-weight:700; color:#0f172a;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* Route row */
+.fl-route {
+    display:flex; align-items:center; gap:6px;
+    font-size:0.82rem; font-weight:600; color:#334155;
+}
+.fl-route .route-arrow { color:#0b72e6; font-size:1rem; }
+.fl-tags { display:flex; flex-wrap:wrap; gap:4px; }
+.fl-tag {
+    font-size:0.7rem; font-weight:600; padding:2px 8px;
+    border-radius:20px; display:inline-flex; align-items:center; gap:3px;
+}
+.fl-tag.blue   { background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; }
+.fl-tag.green  { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+.fl-tag.purple { background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; }
+.fl-tag.amber  { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+.fl-tag.rose   { background:#fff1f2; color:#be123c; border:1px solid #fecdd3; }
+.fl-price {
+    font-size:1.05rem; font-weight:800; color:#0b72e6;
+    display:flex; align-items:baseline; gap:3px;
+}
+.fl-price span { font-size:0.75rem; font-weight:500; color:#64748b; }
+.fl-card-actions { padding:10px 14px 13px; display:flex; gap:8px; }
+.fl-btn {
+    flex:1; padding:8px 0; border-radius:9px;
+    font-size:0.77rem; font-weight:600; text-decoration:none;
+    text-align:center; cursor:pointer; border:1.5px solid transparent;
+    transition:all 0.18s; display:flex; align-items:center;
+    justify-content:center; gap:4px; font-family:inherit;
+}
+.fl-btn.edit { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+.fl-btn.edit:hover { background:#2563eb; color:#fff; border-color:#2563eb; }
+.fl-btn.del  { background:#fff5f5; color:#dc2626; border-color:#fecaca; }
+.fl-btn.del:hover  { background:#dc2626; color:#fff; border-color:#dc2626; }
+/* Empty */
+.fl-empty { grid-column:1/-1; text-align:center; padding:50px 20px; color:#94a3b8; }
+.fl-empty .fl-empty-icon { font-size:3rem; display:block; margin-bottom:10px; opacity:0.4; }
+.fl-empty p { font-size:0.9rem; }
+.fl-no-results { display:none; grid-column:1/-1; text-align:center; padding:30px 20px; color:#94a3b8; font-size:0.88rem; }
+/* Responsive */
+@media (max-width:1050px) { .fl-layout { grid-template-columns:1fr; } .fl-form-panel { position:static; } }
+@media (max-width:600px) { .fl-page { padding:16px 14px 40px; } .fl-row { grid-template-columns:1fr; } .fl-grid { grid-template-columns:1fr; } }
+</style>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Flight</title>
-    <link rel="stylesheet" href="flightstyle.css"> 
-</head>
-<body>
+<div class="fl-page">
 
-<div class="container">
-
-    <!-- ADD FLIGHT FORM -->
-    <div class="form-box">
-        <h2>Add New Flight</h2>
-        <form action="../controller/FlightController.php" method="POST" enctype="multipart/form-data" id="addFlightForm">
-            <div id="errorMessages" style="color: red; margin-bottom: 10px;"></div>
-            <input type="text" name="flight_name" id="flight_name" placeholder="Enter Flight Name" class="box" required><br><br>
-            <input type="text" name="airline_name" id="airline_name" placeholder="Enter Airline Name" class="box" required><br><br>
-            <input type="text" name="flight_code" id="flight_code" placeholder="Enter Flight Code" class="box" required><br><br>
-            <input type="text" name="departure" id="departure" placeholder="Enter Departure From" class="box" required><br><br>
-            <input type="text" name="arrival" id="arrival" placeholder="Enter Arrival To" class="box" required><br><br>
-            <input type="text" name="duration" id="duration" placeholder="Enter Time Duration" class="box" required><br><br>
-            <input type="number" step="0.01" name="price" id="price" placeholder="Enter Price" class="box" required><br><br>
-            <input type="file" name="image" id="image" class="box" required accept="image/*"><br><br>
-
-            <button type="submit" name="submit" class="btn">Add Flight</button>
-        </form>
-    </div>
-
-    <!-- FLIGHT LIST -->
-    <h2>Existing Flights</h2>
-
-    <div class="flight-list">
-        <?php while ($row = $flights->fetch_assoc()) { ?>
-            <div class="flight-box">
-                <img src="upload/<?= $row['image'] ?>" alt="Flight Image">
-                <h3><?= $row['flight_name'] ?></h3>
-                <p><b>Airline Name:</b> <?= $row['airline_name'] ?></p>
-                <p><b>Airline Code:</b> <?= $row['flight_code'] ?></p>
-                <p><b>From:</b> <?= $row['departure'] ?></p>
-                <p><b>To:</b> <?= $row['arrival'] ?></p>
-                <p><b>Duration:</b> <?= $row['duration'] ?></p>
-                <p><b>Price:</b> ₹<?= $row['price'] ?></p>
-
-                <a href="editFlight.php?id=<?= $row['id'] ?>" class="btn edit-btn">Edit</a> |
-                <a href="../controller/FlightController.php?delete_id=<?= $row['id'] ?>" class="btn delete-btn" onclick="return confirm('Delete this flight?')">Delete</a>
+    <!-- Title bar -->
+    <div class="fl-titlebar">
+        <div class="fl-titlebar-left">
+            <div class="fl-titlebar-icon">🛫</div>
+            <div>
+                <h1>Flight Management</h1>
+                <p>Add, edit and manage flights on the GoZayan platform</p>
             </div>
-        <?php } ?>
+        </div>
+        <span class="fl-count-pill">🛫 <?= count($flights) ?> Flight<?= count($flights) !== 1 ? 's' : '' ?></span>
     </div>
 
+    <!-- Flash message -->
+    <?php if ($flash_msg): ?>
+        <div class="fl-flash <?= htmlspecialchars($flash_type) ?>" id="flFlash">
+            <span><?= $flash_type === 'success' ? '✅' : '❌' ?></span>
+            <?= htmlspecialchars($flash_msg) ?>
+            <button class="fl-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+    <?php endif; ?>
+
+    <div class="fl-layout">
+
+        <!-- ══ LEFT: Form Panel ══ -->
+        <div class="fl-form-panel">
+            <div class="fl-form-header">
+                <div class="fl-form-header-icon">➕</div>
+                <div>
+                    <h2>Add New Flight</h2>
+                    <span>Fill in the flight details below</span>
+                </div>
+            </div>
+            <div class="fl-form-body">
+                <form action="../controller/FlightController.php" method="POST"
+                      enctype="multipart/form-data" id="addFlightForm">
+                    <div id="flErrorMessages"></div>
+
+                    <!-- Flight Identity -->
+                    <div class="fl-section">Flight Identity</div>
+
+                    <div class="fl-field">
+                        <label>Flight Name <span class="req">*</span></label>
+                        <div class="fl-wrap">
+                            <span class="fl-ico">✈️</span>
+                            <input type="text" name="flight_name" id="flight_name"
+                                   placeholder="GoZayan Express 101" required>
+                        </div>
+                    </div>
+
+                    <div class="fl-row">
+                        <div class="fl-field">
+                            <label>Airline Name <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">🏢</span>
+                                <input type="text" name="airline_name" id="airline_name"
+                                       placeholder="Malaysia Airlines" required>
+                            </div>
+                        </div>
+                        <div class="fl-field">
+                            <label>Flight Code <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">🔤</span>
+                                <input type="text" name="flight_code" id="flight_code"
+                                       placeholder="MH 370" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Route -->
+                    <div class="fl-section">Route & Schedule</div>
+
+                    <div class="fl-row">
+                        <div class="fl-field">
+                            <label>Departure City <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">🛫</span>
+                                <input type="text" name="departure" id="departure"
+                                       placeholder="Kuala Lumpur" required>
+                            </div>
+                        </div>
+                        <div class="fl-field">
+                            <label>Arrival City <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">🛬</span>
+                                <input type="text" name="arrival" id="arrival"
+                                       placeholder="Singapore" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fl-row">
+                        <div class="fl-field">
+                            <label>Departure Time <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">🕐</span>
+                                <input type="time" name="departure_time" id="departure_time" required>
+                            </div>
+                        </div>
+                        <div class="fl-field">
+                            <label>Arrival Time <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">🕔</span>
+                                <input type="time" name="arrival_time" id="arrival_time" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fl-field">
+                        <label>Duration <span class="req">*</span></label>
+                        <div class="fl-wrap">
+                            <span class="fl-ico">⏱️</span>
+                            <input type="text" name="duration" id="duration"
+                                   placeholder="2h 30m" required>
+                        </div>
+                    </div>
+
+                    <!-- Pricing & Class -->
+                    <div class="fl-section">Pricing & Class</div>
+
+                    <div class="fl-row">
+                        <div class="fl-field">
+                            <label>Price (USD) <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">💵</span>
+                                <input type="number" step="0.01" min="0" name="price" id="price"
+                                       placeholder="4500.00" required>
+                            </div>
+                        </div>
+                        <div class="fl-field">
+                            <label>Total Seats <span class="req">*</span></label>
+                            <div class="fl-wrap">
+                                <span class="fl-ico">💺</span>
+                                <input type="number" min="1" name="total_seats" id="total_seats"
+                                       placeholder="180" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fl-row">
+                        <div class="fl-field">
+                            <label>Class <span class="req">*</span></label>
+                            <div class="fl-wrap fl-sel-wrap">
+                                <span class="fl-ico">🎫</span>
+                                <select name="flight_class" id="flight_class">
+                                    <option value="Economy">Economy</option>
+                                    <option value="Business">Business</option>
+                                    <option value="First Class">First Class</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="fl-field">
+                            <label>Status</label>
+                            <div class="fl-wrap fl-sel-wrap">
+                                <span class="fl-ico">🔘</span>
+                                <select name="status" id="status">
+                                    <option value="active">✅ Active</option>
+                                    <option value="inactive">❌ Inactive</option>
+                                    <option value="cancelled">⚠️ Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image -->
+                    <div class="fl-section">Flight Image</div>
+
+                    <div class="fl-field">
+                        <div class="fl-file-zone" id="flFileZone">
+                            <input type="file" name="image" id="image" required accept="image/*"
+                                   onchange="updateFlFileLabel(this)">
+                            <span class="fz-icon">🖼️</span>
+                            <p class="fz-text" id="flFileLabel">
+                                <b>Click to upload</b> or drag & drop<br>PNG, JPG, WEBP
+                            </p>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="submit" class="fl-submit">
+                        ➕ Add Flight
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ══ RIGHT: Flights List Panel ══ -->
+        <div class="fl-list-panel">
+            <div class="fl-list-header">
+                <h2>Existing Flights</h2>
+                <span class="fl-count-pill"><?= count($flights) ?> total</span>
+            </div>
+            <div class="fl-list-body">
+
+                <div class="fl-search-wrap">
+                    <span class="s-ico">🔍</span>
+                    <input type="text" id="flSearch"
+                           placeholder="Search by flight name, airline, route or code…"
+                           oninput="filterFlights(this.value)">
+                </div>
+
+                <div class="fl-grid" id="flGrid">
+                    <?php if (empty($flights)): ?>
+                        <div class="fl-empty">
+                            <span class="fl-empty-icon">🛫</span>
+                            <p>No flights yet. Add your first one!</p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($flights as $f): ?>
+                            <?php $status = $f['status'] ?? 'active'; ?>
+                            <div class="fl-card"
+                                 data-name="<?= strtolower(htmlspecialchars($f['flight_name'])) ?>"
+                                 data-airline="<?= strtolower(htmlspecialchars($f['airline_name'])) ?>"
+                                 data-code="<?= strtolower(htmlspecialchars($f['flight_code'])) ?>"
+                                 data-dep="<?= strtolower(htmlspecialchars($f['departure'])) ?>"
+                                 data-arr="<?= strtolower(htmlspecialchars($f['arrival'])) ?>">
+
+                                <div class="fl-card-img">
+                                    <img src="upload/<?= htmlspecialchars($f['image']) ?>"
+                                         alt="<?= htmlspecialchars($f['flight_name']) ?>">
+                                    <span class="fl-status-badge <?= htmlspecialchars($status) ?>">
+                                        <?= ucfirst($status) ?>
+                                    </span>
+                                </div>
+
+                                <div class="fl-card-body">
+                                    <h3><?= htmlspecialchars($f['flight_name']) ?></h3>
+
+                                    <div class="fl-route">
+                                        <span><?= htmlspecialchars($f['departure']) ?></span>
+                                        <span class="route-arrow">→</span>
+                                        <span><?= htmlspecialchars($f['arrival']) ?></span>
+                                    </div>
+
+                                    <div class="fl-tags">
+                                        <span class="fl-tag blue">🏢 <?= htmlspecialchars($f['airline_name']) ?></span>
+                                        <span class="fl-tag purple">🔤 <?= htmlspecialchars($f['flight_code']) ?></span>
+                                        <span class="fl-tag amber">⏱️ <?= htmlspecialchars($f['duration']) ?></span>
+                                        <?php if (!empty($f['flight_class'])): ?>
+                                            <span class="fl-tag green">🎫 <?= htmlspecialchars($f['flight_class']) ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($f['total_seats'])): ?>
+                                            <span class="fl-tag rose">💺 <?= (int)$f['total_seats'] ?> seats</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($f['departure_time']) && !empty($f['arrival_time'])): ?>
+                                            <span class="fl-tag blue">🕐 <?= htmlspecialchars($f['departure_time']) ?> – <?= htmlspecialchars($f['arrival_time']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="fl-price">
+                                        $<?= number_format((float)$f['price'], 2) ?>
+                                        <span>/ person</span>
+                                    </div>
+                                </div>
+
+                                <div class="fl-card-actions">
+                                    <a href="editFlight.php?id=<?= $f['id'] ?>" class="fl-btn edit">✏️ Edit</a>
+                                    <a href="../controller/FlightController.php?delete_id=<?= $f['id'] ?>"
+                                       class="fl-btn del"
+                                       onclick="return confirm('Delete <?= htmlspecialchars(addslashes($f['flight_name'])) ?>?')">🗑️ Delete</a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        <div class="fl-no-results" id="flNoResults">No flights match your search.</div>
+                    <?php endif; ?>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
 </div>
 
+<script>
+function updateFlFileLabel(input) {
+    const label = document.getElementById('flFileLabel');
+    const zone  = document.getElementById('flFileZone');
+    if (input.files && input.files[0]) {
+        label.innerHTML = '✅ <b>' + input.files[0].name + '</b>';
+        zone.style.borderColor = '#16a34a';
+        zone.style.background  = '#f0fdf4';
+    }
+}
+
+function filterFlights(query) {
+    const q     = query.toLowerCase().trim();
+    const cards = document.querySelectorAll('#flGrid .fl-card');
+    const noRes = document.getElementById('flNoResults');
+    let visible = 0;
+    cards.forEach(c => {
+        const match = !q
+            || c.dataset.name.includes(q)
+            || c.dataset.airline.includes(q)
+            || c.dataset.code.includes(q)
+            || c.dataset.dep.includes(q)
+            || c.dataset.arr.includes(q);
+        c.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    if (noRes) noRes.style.display = (visible === 0 && q) ? 'block' : 'none';
+}
+
+const flFlash = document.getElementById('flFlash');
+if (flFlash) setTimeout(() => flFlash.remove(), 4000);
+</script>
 <script src="../controller/addFlightValidation.js"></script>
 
 </body>
 </html>
-
-<?php
-include("../includes/footer.php");
-?>
+<?php include("../includes/footer.php"); ?>
