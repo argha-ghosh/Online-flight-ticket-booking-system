@@ -449,7 +449,7 @@ if ($is_logged_in) {
         </nav>
 
         <div class="sidebar-footer">
-            <a href="home.php" class="logout-btn"><span>🚪</span> Sign Out</a>
+            <a href="logout.php" class="logout-btn"><span>🚪</span> Sign Out</a>
         </div>
     </aside>
 

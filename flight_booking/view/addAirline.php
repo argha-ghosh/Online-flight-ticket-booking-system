@@ -1,6 +1,7 @@
 <?php
 // Controller MUST run first — it may call header() to redirect.
-include("../controller/AirlineController.php");
+// The controller file lives in the same `view/` folder in this codebase.
+include("AirlineController.php");
 $airlines = $airlines ?? [];
 
 // Consume flash message before any output
