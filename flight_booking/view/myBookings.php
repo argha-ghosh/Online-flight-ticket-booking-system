@@ -63,6 +63,7 @@ while ($s = $stats_q->fetch_assoc()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoZayan | My Bookings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -388,7 +389,7 @@ while ($s = $stats_q->fetch_assoc()) {
             .bp-city { font-size: 1.2rem; }
         }
 
-        /* ══ FOOTER STYLING ══ */
+        /* ══ FOOTER STYLING ══
         footer {
             background: linear-gradient(135deg, var(--secondary) 0%, #0d1f35 100%);
             color: rgba(255, 255, 255, 0.75);
@@ -421,27 +422,24 @@ while ($s = $stats_q->fetch_assoc()) {
         }
         .social-icons {
             display: flex;
-            gap: 12px;
-            margin: 4px 0;
+            justify-content: center;
+            gap: 14px;
         }
         .social-icons a {
-            width: 38px;
-            height: 38px;
-            background: rgba(255, 255, 255, 0.08);
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #fff !important;
-            font-size: 1rem;
-            transition: all 0.25s;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-size: 18px;
+            transition: all 0.25s ease;
         }
         .social-icons a:hover {
-            background: var(--primary);
-            border-color: var(--primary);
+            background: #1a6ff4;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(26, 111, 244, 0.35);
         }
         .contact-info {
             display: flex;
@@ -459,7 +457,7 @@ while ($s = $stats_q->fetch_assoc()) {
             display: flex;
             align-items: center;
             gap: 6px;
-        }
+        } */
     </style>
 </head>
 <body>

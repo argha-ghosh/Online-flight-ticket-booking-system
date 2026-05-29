@@ -77,6 +77,7 @@ if (!empty($user['image']) && file_exists(__DIR__ . "/uploads/" . $user['image']
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoZayan | My Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -257,7 +258,7 @@ if (!empty($user['image']) && file_exists(__DIR__ . "/uploads/" . $user['image']
             .topbar{padding:14px 16px}
         }
 
-        /* ══ FOOTER STYLING ══ */
+        /* ══ FOOTER STYLING ══
         footer {
             background: linear-gradient(135deg, var(--secondary) 0%, #0d1f35 100%);
             color: rgba(255, 255, 255, 0.75);
@@ -328,7 +329,7 @@ if (!empty($user['image']) && file_exists(__DIR__ . "/uploads/" . $user['image']
             display: flex;
             align-items: center;
             gap: 6px;
-        }
+        } */
     </style>
 
 <div class="dashboard">

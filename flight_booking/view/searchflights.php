@@ -1,7 +1,6 @@
 <?php
 session_start();
 include("../model/db_conn.php");
-include("../includes/header.php");
 
 $is_logged_in = isset($_SESSION['email']) && isset($_SESSION['role']) && $_SESSION['role'] === 'webuser';
 
@@ -1101,7 +1100,8 @@ $total_passengers = $adults + $children;
         @media (max-width: 860px) {
             .swap-btn { display: none; }
             .route-group, .date-group { min-width: 120px; }
-        }
+
+            .mobile-filter-btn {
                 display: flex;
                 align-items: center;
                 gap: 8px;
@@ -1142,6 +1142,7 @@ $total_passengers = $adults + $children;
     </style>
 </head>
 <body>
+<?php include("../includes/header.php"); ?>
 
 <!-- SEARCH -->
 <div class="search-section">

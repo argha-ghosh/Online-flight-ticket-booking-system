@@ -108,7 +108,6 @@ if (isset($_POST['pay_now'])) {
     }
 }
 
-include("../includes/header.php");
 ?>
 
 <!DOCTYPE html>
@@ -246,6 +245,7 @@ include("../includes/header.php");
     </style>
 </head>
 <body>
+<?php include("../includes/header.php"); ?>
 
 <div class="page-header">
     <h1>💳 Secure Payment</h1>

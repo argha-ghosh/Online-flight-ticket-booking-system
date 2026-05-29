@@ -1,5 +1,4 @@
 <?php
-include("../includes/header.php");
 include("../model/db_conn.php");
 
 $manager_id = 16; // Default manager ID
@@ -200,6 +199,7 @@ if (isset($_POST['save_schedule'])) {
     </style>
 </head>
 <body>
+<?php include("../includes/header.php"); ?>
 
 <div class="schedule-container">
     <h2>Weekly Schedule Management</h2>
