@@ -453,7 +453,6 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
             border-radius: 18px;
             overflow: hidden;
             cursor: pointer;
-            group: true;
         }
         .route-card-inner {
             background: var(--cloud);

@@ -531,7 +531,6 @@ $total_passengers = $adults + $children;
         }
 
         /* ── RESULTS PANEL ── */
-        .results-panel {}
         .results-topbar {
             display: flex;
             align-items: center;
