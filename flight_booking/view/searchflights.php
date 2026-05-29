@@ -30,8 +30,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!empty($from) && !empty($to)) {
         $from_pat = "%" . $from . "%";
         $to_pat   = "%" . $to   . "%";
-        $stmt = $conn->prepare("SELECT * FROM flights WHERE departure LIKE ? AND arrival LIKE ? AND (seat IS NULL OR seat > 0) ORDER BY price ASC");
-        $stmt->bind_param("ss", $from_pat, $to_pat);
+        
+        // Get the day of the week from the depart date (e.g. 'Friday')
+        $search_day = !empty($depart_date) ? date('l', strtotime($depart_date)) : '';
+
+        // JOIN schedule to get weekly departure/arrival days
+        // Only show active flights with available seats and matching schedule day
+        $sql = "
+            SELECT f.*,
+                   ROUND(f.price * (1 - f.discount_pct / 100), 2) AS final_price,
+                   s.departure_day, s.arrival_day,
+                   s.departure_time AS sched_dep_time,
+                   s.arrival_time   AS sched_arr_time
+            FROM flights f
+            LEFT JOIN schedule s ON s.flight_code COLLATE utf8mb4_unicode_ci = f.flight_code
+            WHERE f.departure LIKE ? AND f.arrival LIKE ?
+              AND f.status = 'active'
+              AND (f.seat IS NULL OR f.seat > 0)
+        ";
+
+        if (!empty($search_day)) {
+            $sql .= " AND (s.departure_day IS NULL OR s.departure_day = ?)";
+        }
+        $sql .= " ORDER BY final_price ASC";
+
+        if (!empty($search_day)) {
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("sss", $from_pat, $to_pat, $search_day);
+        } else {
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ss", $from_pat, $to_pat);
+        }
+
         $stmt->execute();
         $result = $stmt->get_result();
         while ($row = $result->fetch_assoc()) {
@@ -58,12 +88,13 @@ function getStops($duration) {
     return 2;
 }
 
-// Build airline list with min prices for sidebar
+// Build airline list with min prices for sidebar — use discounted final_price
 $airline_prices = [];
 foreach ($flights as $f) {
     $a = $f['airline_name'];
-    if (!isset($airline_prices[$a]) || $f['price'] < $airline_prices[$a]) {
-        $airline_prices[$a] = $f['price'];
+    $fp = (float)($f['final_price'] ?? $f['price']);
+    if (!isset($airline_prices[$a]) || $fp < $airline_prices[$a]) {
+        $airline_prices[$a] = $fp;
     }
 }
 asort($airline_prices);
@@ -78,8 +109,8 @@ foreach ($flights as $f) {
     else                 $seat_buckets['300+']    = true;
 }
 
-$min_price = count($flights) ? (int)min(array_column($flights, 'price')) : 0;
-$max_price = count($flights) ? (int)max(array_column($flights, 'price')) : 10000;
+$min_price = count($flights) ? (int)min(array_map(fn($f) => $f['final_price'] ?? $f['price'], $flights)) : 0;
+$max_price = count($flights) ? (int)max(array_map(fn($f) => $f['final_price'] ?? $f['price'], $flights)) : 10000;
 $total_passengers = $adults + $children;
 ?>
 <!DOCTYPE html>
@@ -727,6 +758,50 @@ $total_passengers = $adults + $children;
             font-weight: 500;
         }
 
+        /* Schedule times row */
+        .flight-times {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            background: #f0f6ff;
+            border: 1px solid rgba(26,111,244,0.15);
+            border-radius: 10px;
+            padding: 8px 14px;
+        }
+        .time-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+        .time-val {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+        .time-day {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--mid);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .time-lbl {
+            font-size: 0.65rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .time-arrow {
+            font-size: 1rem;
+            color: var(--primary);
+            font-weight: 700;
+            flex: 1;
+            text-align: center;
+        }
+
         /* PRICING PANEL */
         .flight-pricing {
             display: flex;
@@ -1342,14 +1417,15 @@ $total_passengers = $adults + $children;
         <div id="flightList">
             <?php foreach ($flights as $i => $flight):
                 $stops      = getStops($flight['duration']);
-                $total_price= $flight['price'] * $total_passengers;
+                $unit_price = (float)($flight['final_price'] ?? $flight['price']);
+                $total_price= round($unit_price * $total_passengers, 2);
                 $seats_left = (int)($flight['seat'] ?? 0);
                 $stop_labels_map = [0=>'Non Stop', 1=>'1 Stop', 2=>'2+ Stops'];
                 $stop_tag_cls    = ['tag-stop-0','tag-stop-1','tag-stop-2'];
                 $seat_bucket = $seats_left <= 50 ? '0-50' : ($seats_left <= 150 ? '51-150' : ($seats_left <= 300 ? '151-300' : '300+'));
             ?>
             <div class="flight-card"
-                 data-price="<?= $flight['price'] ?>"
+                 data-price="<?= $unit_price ?>"
                  data-total="<?= $total_price ?>"
                  data-stops="<?= $stops ?>"
                  data-airline="<?= htmlspecialchars($flight['airline_name']) ?>"
@@ -1389,6 +1465,30 @@ $total_passengers = $adults + $children;
                             </div>
                             <span class="city"><?= htmlspecialchars($flight['arrival']) ?></span>
                         </div>
+                        <?php
+                            // Use schedule times if available, fall back to flights table times
+                            $dep_t = !empty($flight['sched_dep_time']) ? $flight['sched_dep_time'] : ($flight['departure_time'] ?? '');
+                            $arr_t = !empty($flight['sched_arr_time']) ? $flight['sched_arr_time'] : ($flight['arrival_time']   ?? '');
+                            $dep_t = substr($dep_t, 0, 5); // HH:MM only
+                            $arr_t = substr($arr_t, 0, 5);
+                            $dep_day = $flight['departure_day'] ?? '';
+                            $arr_day = $flight['arrival_day']   ?? '';
+                        ?>
+                        <?php if ($dep_t || $dep_day): ?>
+                        <div class="flight-times">
+                            <div class="time-block">
+                                <?php if ($dep_t): ?><span class="time-val"><?= htmlspecialchars($dep_t) ?></span><?php endif; ?>
+                                <?php if ($dep_day): ?><span class="time-day"><?= htmlspecialchars($dep_day) ?></span><?php endif; ?>
+                                <span class="time-lbl">Departure</span>
+                            </div>
+                            <div class="time-arrow">→</div>
+                            <div class="time-block">
+                                <?php if ($arr_t): ?><span class="time-val"><?= htmlspecialchars($arr_t) ?></span><?php endif; ?>
+                                <?php if ($arr_day): ?><span class="time-day"><?= htmlspecialchars($arr_day) ?></span><?php endif; ?>
+                                <span class="time-lbl">Arrival</span>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                         <div class="flight-meta">
                             <span class="meta-item">📅 <?= htmlspecialchars($depart_date) ?></span>
                             <span class="meta-item">👥 <?= $adults ?> Adult<?= $adults>1?'s':'' ?><?= $children>0?", $children Child".($children>1?'ren':''):'' ?></span>
@@ -1400,7 +1500,13 @@ $total_passengers = $adults + $children;
                     <div class="flight-pricing">
                         <div class="price-label">Total Price</div>
                         <div class="price-amount">$<?= number_format($total_price, 0) ?></div>
-                        <div class="per-person">$<?= number_format($flight['price'], 0) ?> / person</div>
+                        <div class="per-person">
+                            $<?= number_format($unit_price, 0) ?> / person
+                            <?php if (($flight['discount_pct'] ?? 0) > 0): ?>
+                                <span style="text-decoration:line-through;color:#94a3b8;font-size:0.68rem;margin-left:4px;">$<?= number_format($flight['price'], 0) ?></span>
+                                <span style="color:#16a34a;font-weight:700;font-size:0.72rem;margin-left:3px;">-<?= (int)$flight['discount_pct'] ?>%</span>
+                            <?php endif; ?>
+                        </div>
                         <?php if ($seats_left > 0 && $seats_left <= 10): ?>
                             <div class="seats-left">⚠️ Only <?= $seats_left ?> left!</div>
                         <?php endif; ?>

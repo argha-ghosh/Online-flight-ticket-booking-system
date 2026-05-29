@@ -13,10 +13,19 @@ $booking_id = (int)$_GET['id'];
 $email = $_SESSION['email'];
 
 $stmt = $conn->prepare("
-    SELECT b.*, f.flight_name, f.airline_name, f.flight_code, f.duration, f.image as flight_image,
+    SELECT b.*,
+           f.flight_name, f.airline_name, f.flight_code, f.duration, f.image as flight_image,
+           f.departure_time, f.arrival_time,
+           f.status as flight_status,
+           ROUND(f.price * (1 - f.discount_pct / 100), 2) AS current_unit_price,
+           f.discount_pct,
+           s.departure_day, s.arrival_day,
+           s.departure_time AS sched_dep_time,
+           s.arrival_time   AS sched_arr_time,
            w.name as passenger_name, w.email as passenger_email, w.image as user_image
     FROM bookings b
     JOIN flights f ON b.flight_id = f.id
+    LEFT JOIN schedule s ON s.flight_code COLLATE utf8mb4_unicode_ci = f.flight_code
     JOIN webusers w ON b.user_id = w.id
     WHERE b.id = ? AND w.email = ?
 ");
@@ -26,6 +35,12 @@ $booking = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$booking) { header("Location: myBookings.php"); exit; }
+
+// ── Resolve live schedule times once, used throughout the page ──
+$dep_t   = substr(!empty($booking['sched_dep_time']) ? $booking['sched_dep_time'] : ($booking['departure_time'] ?? ''), 0, 5);
+$arr_t   = substr(!empty($booking['sched_arr_time']) ? $booking['sched_arr_time'] : ($booking['arrival_time']   ?? ''), 0, 5);
+$dep_day = $booking['departure_day'] ?? '';
+$arr_day = $booking['arrival_day']   ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -211,6 +226,79 @@ if (!$booking) { header("Location: myBookings.php"); exit; }
             .success-strip .ref-pill{margin-left:0}
             .bp-grid{grid-template-columns:repeat(2,1fr)}
             .bp-iata{font-size:2rem}
+        }
+
+        /* ══ FOOTER STYLING ══ */
+        footer {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0d1f35 100%);
+            color: rgba(255, 255, 255, 0.75);
+            padding: 36px 32px;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            text-align: center;
+        }
+        .footer-container p {
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+        .footer-container a {
+            color: #60a5fa;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .footer-container a:hover {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+        .social-icons {
+            display: flex;
+            gap: 12px;
+            margin: 4px 0;
+        }
+        .social-icons a {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff !important;
+            font-size: 1rem;
+            transition: all 0.25s;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .social-icons a:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 111, 244, 0.35);
+        }
+        .contact-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.55);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 14px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .contact-info span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* ══════════════════════════════════════
@@ -564,6 +652,8 @@ if (!$booking) { header("Location: myBookings.php"); exit; }
                         <div class="bp-city-block">
                             <div class="bp-iata"><?= strtoupper(substr($booking['from_location'], 0, 3)) ?></div>
                             <div class="bp-city-name"><?= htmlspecialchars($booking['from_location']) ?></div>
+                            <?php if ($dep_t): ?><div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-top:3px;"><?= htmlspecialchars($dep_t) ?></div><?php endif; ?>
+                            <?php if ($dep_day): ?><div style="font-size:0.7rem;color:var(--muted);"><?= htmlspecialchars($dep_day) ?></div><?php endif; ?>
                         </div>
                         <div class="bp-route-mid">
                             <div class="bp-route-track"><span class="bp-route-plane">✈</span></div>
@@ -572,6 +662,8 @@ if (!$booking) { header("Location: myBookings.php"); exit; }
                         <div class="bp-city-block">
                             <div class="bp-iata"><?= strtoupper(substr($booking['to_location'], 0, 3)) ?></div>
                             <div class="bp-city-name"><?= htmlspecialchars($booking['to_location']) ?></div>
+                            <?php if ($arr_t): ?><div style="font-size:0.85rem;font-weight:800;color:var(--primary);margin-top:3px;"><?= htmlspecialchars($arr_t) ?></div><?php endif; ?>
+                            <?php if ($arr_day): ?><div style="font-size:0.7rem;color:var(--muted);"><?= htmlspecialchars($arr_day) ?></div><?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -584,48 +676,90 @@ if (!$booking) { header("Location: myBookings.php"); exit; }
                 </div>
 
                 <!-- Details -->
-                <div class="bp-details">
-                    <div class="bp-grid">
-                        <div class="bp-field">
-                            <div class="lbl">Passenger</div>
-                            <div class="val"><?= htmlspecialchars($booking['passenger_name']) ?></div>
+                <div class="bp-details" style="display: flex; gap: 30px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; padding: 24px 30px;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <div class="bp-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 22px;">
+                            <div class="bp-field">
+                                <div class="lbl">Passenger</div>
+                                <div class="val"><?= htmlspecialchars($booking['passenger_name']) ?></div>
+                            </div>
+                            <div class="bp-field">
+                                <div class="lbl">Depart Date</div>
+                                <div class="val"><?= date('d M Y', strtotime($booking['depart_date'])) ?></div>
+                            </div>
+                            <?php if ($dep_t): ?>
+                            <div class="bp-field">
+                                <div class="lbl">Departure Time</div>
+                                <div class="val"><?= htmlspecialchars($dep_t) ?><?= $dep_day ? ' · ' . htmlspecialchars($dep_day) : '' ?></div>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($arr_t): ?>
+                            <div class="bp-field">
+                                <div class="lbl">Arrival Time</div>
+                                <div class="val"><?= htmlspecialchars($arr_t) ?><?= $arr_day ? ' · ' . htmlspecialchars($arr_day) : '' ?></div>
+                            </div>
+                            <?php endif; ?>
+                            <div class="bp-field">
+                                <div class="lbl">Booked On</div>
+                                <div class="val"><?= date('d M Y', strtotime($booking['booking_date'])) ?></div>
+                            </div>
+                            <div class="bp-field">
+                                <div class="lbl">Adults</div>
+                                <div class="val"><?= $booking['adults'] ?></div>
+                            </div>
+                            <div class="bp-field">
+                                <div class="lbl">Children</div>
+                                <div class="val"><?= $booking['children'] ?: '—' ?></div>
+                            </div>
+                            <div class="bp-field">
+                                <div class="lbl">Trip Type</div>
+                                <div class="val"><?= ucfirst($booking['trip_type']) ?></div>
+                            </div>
                         </div>
-                        <div class="bp-field">
-                            <div class="lbl">Depart Date</div>
-                            <div class="val"><?= date('d M Y', strtotime($booking['depart_date'])) ?></div>
-                        </div>
-                        <div class="bp-field">
-                            <div class="lbl">Booked On</div>
-                            <div class="val"><?= date('d M Y', strtotime($booking['booking_date'])) ?></div>
-                        </div>
-                        <div class="bp-field">
-                            <div class="lbl">Adults</div>
-                            <div class="val"><?= $booking['adults'] ?></div>
-                        </div>
-                        <div class="bp-field">
-                            <div class="lbl">Children</div>
-                            <div class="val"><?= $booking['children'] ?: '—' ?></div>
-                        </div>
-                        <div class="bp-field">
-                            <div class="lbl">Trip Type</div>
-                            <div class="val"><?= ucfirst($booking['trip_type']) ?></div>
+
+                        <div class="bp-price-row">
+                            <div>
+                                <div class="bp-total-lbl">Total Paid</div>
+                                <div class="bp-total-amt">$<?= number_format($booking['total_price'], 0) ?></div>
+                            </div>
+                            <span class="bp-status status-<?= htmlspecialchars($booking['status']) ?>">
+                                <?= $booking['status']==='confirmed' ? '✔' : '✖' ?> <?= ucfirst($booking['status']) ?>
+                            </span>
                         </div>
                     </div>
 
-                    <div class="bp-price-row">
-                        <div>
-                            <div class="bp-total-lbl">Total Paid</div>
-                            <div class="bp-total-amt">$<?= number_format($booking['total_price'], 0) ?></div>
-                        </div>
-                        <span class="bp-status status-<?= htmlspecialchars($booking['status']) ?>">
-                            <?= $booking['status']==='confirmed' ? '✔' : '✖' ?> <?= ucfirst($booking['status']) ?>
-                        </span>
+                    <!-- Beautiful interactive QR Code on the right -->
+                    <?php
+                    $qr_data = "GoZayan E-Ticket\n"
+                             . "Ref: #" . str_pad($booking['id'], 6, '0', STR_PAD_LEFT) . "\n"
+                             . "Passenger: " . $booking['passenger_name'] . "\n"
+                             . "Flight: " . $booking['flight_code'] . " (" . $booking['airline_name'] . ")\n"
+                             . "Route: " . $booking['from_location'] . " -> " . $booking['to_location'] . "\n"
+                             . "Date: " . date('d M Y', strtotime($booking['depart_date'])) . "\n"
+                             . "Class: " . $booking['class'] . "\n"
+                             . "Status: " . ucfirst($booking['status']);
+                    $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . urlencode($qr_data);
+                    ?>
+                    <div style="background: #f8fbff; border: 1.5px solid #dce8f5; border-radius: 16px; padding: 18px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 180px; box-shadow: 0 4px 12px rgba(13,31,53,0.03); margin-top: 10px;">
+                        <img src="<?= $qr_url ?>" alt="QR Code" style="width: 130px; height: 130px; border-radius: 8px; border: 1px solid #e2e8f0; background:#fff; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <span style="font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 10px; display: block;">Scan E-Ticket</span>
+                        <span style="font-size: 0.72rem; font-weight: 800; color: var(--primary); font-family: monospace; margin-top: 2px; display: block;">#<?= str_pad($booking['id'], 6, '0', STR_PAD_LEFT) ?></span>
                     </div>
                 </div>
             </div><!-- /bp -->
 
-            <!-- RIGHT: Payment + actions -->
+            <!-- RIGHT: Actions + Payment -->
             <div class="right-col">
+
+                <!-- Actions -->
+                <div class="panel">
+                    <div class="panel-head">⚡ Actions</div>
+                    <div class="panel-body">
+                        <button onclick="doPrint()" class="action-btn btn-blue">🖨️ Print Ticket</button>
+                        <a href="myBookings.php"    class="action-btn btn-ghost">📋 My Bookings</a>
+                        <a href="searchflights.php" class="action-btn btn-ghost">🔍 Search More Flights</a>
+                    </div>
+                </div>
 
                 <!-- Payment info -->
                 <div class="panel">
@@ -647,16 +781,6 @@ if (!$booking) { header("Location: myBookings.php"); exit; }
                             <span class="k">Amount</span>
                             <span class="v" style="color:var(--primary)">$<?= number_format($booking['total_price'], 0) ?></span>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="panel">
-                    <div class="panel-head">⚡ Actions</div>
-                    <div class="panel-body">
-                        <button onclick="doPrint()" class="action-btn btn-blue">🖨️ Print Ticket</button>
-                        <a href="myBookings.php"    class="action-btn btn-ghost">📋 My Bookings</a>
-                        <a href="searchflights.php" class="action-btn btn-ghost">🔍 Search More Flights</a>
                     </div>
                 </div>
 
@@ -687,6 +811,8 @@ $bc_seed = str_pad($booking['id'], 10, '0', STR_PAD_LEFT) . strtoupper(substr(md
             <div class="pt-city">
                 <div class="pt-iata"><?= strtoupper(substr($booking['from_location'],0,3)) ?></div>
                 <div class="pt-city-lbl"><?= htmlspecialchars($booking['from_location']) ?></div>
+                <?php if ($dep_t): ?><div style="font-size:0.9rem;font-weight:800;color:#1a6ff4;margin-top:3px;"><?= htmlspecialchars($dep_t) ?></div><?php endif; ?>
+                <?php if ($dep_day): ?><div style="font-size:0.7rem;color:#7a95b0;"><?= htmlspecialchars($dep_day) ?></div><?php endif; ?>
             </div>
             <div class="pt-route-mid">
                 <div class="pt-line-wrap"><span class="pt-plane-icon">✈</span></div>
@@ -695,6 +821,8 @@ $bc_seed = str_pad($booking['id'], 10, '0', STR_PAD_LEFT) . strtoupper(substr(md
             <div class="pt-city">
                 <div class="pt-iata"><?= strtoupper(substr($booking['to_location'],0,3)) ?></div>
                 <div class="pt-city-lbl"><?= htmlspecialchars($booking['to_location']) ?></div>
+                <?php if ($arr_t): ?><div style="font-size:0.9rem;font-weight:800;color:#1a6ff4;margin-top:3px;"><?= htmlspecialchars($arr_t) ?></div><?php endif; ?>
+                <?php if ($arr_day): ?><div style="font-size:0.7rem;color:#7a95b0;"><?= htmlspecialchars($arr_day) ?></div><?php endif; ?>
             </div>
         </div>
 
@@ -708,6 +836,18 @@ $bc_seed = str_pad($booking['id'], 10, '0', STR_PAD_LEFT) . strtoupper(substr(md
                     <div class="pt-f-lbl">Depart Date</div>
                     <div class="pt-f-val"><?= date('d M Y', strtotime($booking['depart_date'])) ?></div>
                 </div>
+                <?php if ($dep_t): ?>
+                <div>
+                    <div class="pt-f-lbl">Departure Time</div>
+                    <div class="pt-f-val"><?= htmlspecialchars($dep_t) ?><?= $dep_day ? ' · ' . htmlspecialchars($dep_day) : '' ?></div>
+                </div>
+                <?php endif; ?>
+                <?php if ($arr_t): ?>
+                <div>
+                    <div class="pt-f-lbl">Arrival Time</div>
+                    <div class="pt-f-val"><?= htmlspecialchars($arr_t) ?><?= $arr_day ? ' · ' . htmlspecialchars($arr_day) : '' ?></div>
+                </div>
+                <?php endif; ?>
                 <div>
                     <div class="pt-f-lbl">Flight</div>
                     <div class="pt-f-val"><?= htmlspecialchars($booking['flight_name']) ?></div>
@@ -765,7 +905,8 @@ $bc_seed = str_pad($booking['id'], 10, '0', STR_PAD_LEFT) . strtoupper(substr(md
                 <div class="sv"><?= htmlspecialchars($booking['flight_code']) ?></div>
             </div>
         </div>
-        <div class="pt-barcode">
+        <div class="pt-barcode" style="padding: 4mm 5mm 5mm; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+            <img src="<?= $qr_url ?>" alt="QR Code" style="width: 24mm; height: 24mm; border: 1px solid #d0d8e8; background: #fff; padding: 1mm; border-radius: 2mm; margin-bottom: 2mm;">
             <div class="pt-barcode-bars" id="barcodeEl"></div>
             <div class="pt-barcode-num"><?= $bc_seed ?></div>
         </div>

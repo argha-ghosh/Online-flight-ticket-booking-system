@@ -14,9 +14,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['flight_id'])) {
     exit;
 }
 
-// Fetch flight details
+// Fetch flight details — also get schedule times and compute discounted price
 $flight_id = (int)$_POST['flight_id'];
-$stmt = $conn->prepare("SELECT * FROM flights WHERE id = ?");
+$stmt = $conn->prepare("
+    SELECT f.*,
+           ROUND(f.price * (1 - f.discount_pct / 100), 2) AS final_price,
+           s.departure_day, s.arrival_day,
+           s.departure_time AS sched_dep_time,
+           s.arrival_time   AS sched_arr_time
+    FROM flights f
+    LEFT JOIN schedule s ON s.flight_code COLLATE utf8mb4_unicode_ci = f.flight_code
+    WHERE f.id = ?
+");
 $stmt->bind_param("i", $flight_id);
 $stmt->execute();
 $flight = $stmt->get_result()->fetch_assoc();
@@ -35,7 +44,10 @@ $depart_date = $_POST['depart_date'] ?? date('Y-m-d');
 $adults      = max(1, (int)($_POST['adults'] ?? 1));
 $children    = max(0, (int)($_POST['children'] ?? 0));
 $class       = $_POST['class'] ?? 'Economy';
-$total_price = (float)($_POST['total_price'] ?? ($flight['price'] * ($adults + $children)));
+
+// Always recalculate from DB — never trust POST total_price (prevents price tampering)
+$unit_price  = (float)($flight['final_price'] ?? $flight['price']);
+$total_price = round($unit_price * ($adults + $children), 2);
 
 $error = '';
 
@@ -242,15 +254,15 @@ include("../includes/header.php");
 
 <form action="" method="POST">
     <!-- Hidden fields to carry booking data -->
-    <input type="hidden" name="flight_id" value="<?= $flight_id ?>">
-    <input type="hidden" name="trip_type" value="<?= htmlspecialchars($trip_type) ?>">
-    <input type="hidden" name="from" value="<?= htmlspecialchars($from) ?>">
-    <input type="hidden" name="to" value="<?= htmlspecialchars($to) ?>">
+    <input type="hidden" name="flight_id"   value="<?= $flight_id ?>">
+    <input type="hidden" name="trip_type"   value="<?= htmlspecialchars($trip_type) ?>">
+    <input type="hidden" name="from"        value="<?= htmlspecialchars($from) ?>">
+    <input type="hidden" name="to"          value="<?= htmlspecialchars($to) ?>">
     <input type="hidden" name="depart_date" value="<?= htmlspecialchars($depart_date) ?>">
-    <input type="hidden" name="adults" value="<?= $adults ?>">
-    <input type="hidden" name="children" value="<?= $children ?>">
-    <input type="hidden" name="class" value="<?= htmlspecialchars($class) ?>">
-    <input type="hidden" name="total_price" value="<?= $total_price ?>">
+    <input type="hidden" name="adults"      value="<?= $adults ?>">
+    <input type="hidden" name="children"    value="<?= $children ?>">
+    <input type="hidden" name="class"       value="<?= htmlspecialchars($class) ?>">
+    <!-- total_price is NOT passed as hidden — it's recalculated server-side on pay_now -->
     <input type="hidden" name="pay_method" id="pay_method_input" value="card">
 
     <div class="payment-wrapper">
@@ -280,6 +292,24 @@ include("../includes/header.php");
                     <span class="lbl">Date</span>
                     <span class="val"><?= date('d M Y', strtotime($depart_date)) ?></span>
                 </div>
+                <?php
+                    $dep_t   = substr(!empty($flight['sched_dep_time']) ? $flight['sched_dep_time'] : ($flight['departure_time'] ?? ''), 0, 5);
+                    $arr_t   = substr(!empty($flight['sched_arr_time']) ? $flight['sched_arr_time'] : ($flight['arrival_time']   ?? ''), 0, 5);
+                    $dep_day = $flight['departure_day'] ?? '';
+                    $arr_day = $flight['arrival_day']   ?? '';
+                ?>
+                <?php if ($dep_t): ?>
+                <div class="summary-row">
+                    <span class="lbl">Departure</span>
+                    <span class="val"><?= htmlspecialchars($dep_t) ?><?= $dep_day ? ' · ' . htmlspecialchars($dep_day) : '' ?></span>
+                </div>
+                <?php endif; ?>
+                <?php if ($arr_t): ?>
+                <div class="summary-row">
+                    <span class="lbl">Arrival</span>
+                    <span class="val"><?= htmlspecialchars($arr_t) ?><?= $arr_day ? ' · ' . htmlspecialchars($arr_day) : '' ?></span>
+                </div>
+                <?php endif; ?>
                 <div class="summary-row">
                     <span class="lbl">Duration</span>
                     <span class="val"><?= htmlspecialchars($flight['duration']) ?></span>
@@ -298,7 +328,13 @@ include("../includes/header.php");
                 </div>
                 <div class="summary-row">
                     <span class="lbl">Price per person</span>
-                    <span class="val">$<?= number_format($flight['price'], 2) ?></span>
+                    <span class="val">
+                        $<?= number_format($unit_price, 2) ?>
+                        <?php if (($flight['discount_pct'] ?? 0) > 0): ?>
+                            <span style="text-decoration:line-through;color:#94a3b8;font-size:0.8em;margin-left:4px;">$<?= number_format($flight['price'], 2) ?></span>
+                            <span style="color:#16a34a;font-weight:700;font-size:0.8em;margin-left:3px;">-<?= (int)$flight['discount_pct'] ?>%</span>
+                        <?php endif; ?>
+                    </span>
                 </div>
 
                 <div class="price-total">

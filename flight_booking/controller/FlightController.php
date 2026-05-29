@@ -3,14 +3,17 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once "../model/FlightModel.php";
+require_once __DIR__ . "/../model/FlightModel.php";
 $flightModel = new FlightModel();
 
 // ── Add Flight ───────────────────────────────────────────────
 if (isset($_POST['submit'])) {
 
+    $uploadDir = __DIR__ . "/../view/upload/";
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
     $imageName = time() . '_' . basename($_FILES['image']['name']);
-    move_uploaded_file($_FILES['image']['tmp_name'], "../view/upload/" . $imageName);
+    move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $imageName);
 
     $data = [
         'flight_name'    => trim($_POST['flight_name']),
@@ -18,13 +21,19 @@ if (isset($_POST['submit'])) {
         'flight_code'    => trim($_POST['flight_code']),
         'departure'      => trim($_POST['departure']),
         'arrival'        => trim($_POST['arrival']),
-        'departure_time' => $_POST['departure_time'],
-        'arrival_time'   => $_POST['arrival_time'],
+        'departure_time' => $_POST['departure_time']  ?? '00:00',
+        'arrival_time'   => $_POST['arrival_time']    ?? '00:00',
         'duration'       => trim($_POST['duration']),
         'price'          => (float)$_POST['price'],
-        'flight_class'   => $_POST['flight_class'],
-        'total_seats'    => (int)$_POST['total_seats'],
-        'status'         => in_array($_POST['status'], ['active','inactive','cancelled']) ? $_POST['status'] : 'active',
+        'flight_class'   => in_array($_POST['flight_class'] ?? '', ['Economy','Business','First Class'])
+                            ? $_POST['flight_class'] : 'Economy',
+        'seat_class'     => in_array($_POST['seat_class'] ?? '', ['Economy','Business','First Class'])
+                            ? $_POST['seat_class'] : 'Economy',
+        'total_seats'    => (int)($_POST['total_seats'] ?? 180),
+        'seat'           => (int)($_POST['total_seats'] ?? 180), // available = total on creation
+        'discount_pct'   => (float)($_POST['discount_pct'] ?? 0),
+        'status'         => in_array($_POST['status'] ?? '', ['active','inactive','cancelled'])
+                            ? $_POST['status'] : 'active',
         'image'          => $imageName,
     ];
 
@@ -32,7 +41,7 @@ if (isset($_POST['submit'])) {
         $_SESSION['flight_msg']      = 'Flight added successfully!';
         $_SESSION['flight_msg_type'] = 'success';
     } else {
-        $_SESSION['flight_msg']      = 'Error adding flight.';
+        $_SESSION['flight_msg']      = 'Error: ' . $flightModel->getLastError();
         $_SESSION['flight_msg_type'] = 'error';
     }
 
@@ -43,9 +52,10 @@ if (isset($_POST['submit'])) {
 // ── Update Flight ────────────────────────────────────────────
 if (isset($_POST['update'])) {
 
+    $uploadDir = __DIR__ . "/../view/upload/";
     if (!empty($_FILES['image']['name'])) {
         $imageName = time() . '_' . basename($_FILES['image']['name']);
-        move_uploaded_file($_FILES['image']['tmp_name'], "../view/upload/" . $imageName);
+        move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $imageName);
     } else {
         $imageName = $_POST['old_image'];
     }
@@ -57,13 +67,19 @@ if (isset($_POST['update'])) {
         'flight_code'    => trim($_POST['flight_code']),
         'departure'      => trim($_POST['departure']),
         'arrival'        => trim($_POST['arrival']),
-        'departure_time' => $_POST['departure_time'],
-        'arrival_time'   => $_POST['arrival_time'],
+        'departure_time' => $_POST['departure_time']  ?? '00:00',
+        'arrival_time'   => $_POST['arrival_time']    ?? '00:00',
         'duration'       => trim($_POST['duration']),
         'price'          => (float)$_POST['price'],
-        'flight_class'   => $_POST['flight_class'],
-        'total_seats'    => (int)$_POST['total_seats'],
-        'status'         => in_array($_POST['status'], ['active','inactive','cancelled']) ? $_POST['status'] : 'active',
+        'flight_class'   => in_array($_POST['flight_class'] ?? '', ['Economy','Business','First Class'])
+                            ? $_POST['flight_class'] : 'Economy',
+        'seat_class'     => in_array($_POST['seat_class'] ?? '', ['Economy','Business','First Class'])
+                            ? $_POST['seat_class'] : 'Economy',
+        'total_seats'    => (int)($_POST['total_seats'] ?? 180),
+        'seat'           => (int)($_POST['seat']        ?? 0),
+        'discount_pct'   => (float)($_POST['discount_pct'] ?? 0),
+        'status'         => in_array($_POST['status'] ?? '', ['active','inactive','cancelled'])
+                            ? $_POST['status'] : 'active',
         'image'          => $imageName,
     ];
 
@@ -71,7 +87,7 @@ if (isset($_POST['update'])) {
         $_SESSION['flight_msg']      = 'Flight updated successfully!';
         $_SESSION['flight_msg_type'] = 'success';
     } else {
-        $_SESSION['flight_msg']      = 'Error updating flight.';
+        $_SESSION['flight_msg']      = 'Error: ' . $flightModel->getLastError();
         $_SESSION['flight_msg_type'] = 'error';
     }
 
@@ -86,7 +102,7 @@ if (isset($_GET['delete_id'])) {
     $flight = $flightModel->getFlightById($id);
 
     if ($flight && !empty($flight['image'])) {
-        $path = "../view/upload/" . $flight['image'];
+        $path = __DIR__ . "/../view/upload/" . $flight['image'];
         if (file_exists($path)) unlink($path);
     }
 
@@ -94,7 +110,7 @@ if (isset($_GET['delete_id'])) {
         $_SESSION['flight_msg']      = 'Flight deleted successfully.';
         $_SESSION['flight_msg_type'] = 'success';
     } else {
-        $_SESSION['flight_msg']      = 'Error deleting flight.';
+        $_SESSION['flight_msg']      = 'Error: ' . $flightModel->getLastError();
         $_SESSION['flight_msg_type'] = 'error';
     }
 

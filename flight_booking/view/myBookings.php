@@ -30,10 +30,19 @@ if ($status_filter === 'confirmed') $where .= " AND b.status = 'confirmed'";
 if ($status_filter === 'cancelled')  $where .= " AND b.status = 'cancelled'";
 
 $bookings_result = $conn->query("
-    SELECT b.*, f.flight_name, f.airline_name, f.flight_code,
-           f.departure, f.arrival, f.duration, f.image as flight_image
+    SELECT b.*,
+           f.flight_name, f.airline_name, f.flight_code,
+           f.departure, f.arrival, f.duration, f.image as flight_image,
+           f.departure_time, f.arrival_time,
+           f.status as flight_status,
+           ROUND(f.price * (1 - f.discount_pct / 100), 2) AS current_unit_price,
+           f.discount_pct,
+           s.departure_day, s.arrival_day,
+           s.departure_time AS sched_dep_time,
+           s.arrival_time   AS sched_arr_time
     FROM bookings b
     JOIN flights f ON b.flight_id = f.id
+    LEFT JOIN schedule s ON s.flight_code COLLATE utf8mb4_unicode_ci = f.flight_code
     $where
     ORDER BY b.booking_date DESC
 ");
@@ -285,6 +294,21 @@ while ($s = $stats_q->fetch_assoc()) {
         .bp-tag {
             font-size: 0.72rem; padding: 3px 10px; border-radius: 20px;
             background: #f0f5ff; color: var(--mid); border: 1px solid var(--border);
+        }
+        /* Live schedule times row */
+        .bp-times {
+            display: flex; align-items: center; gap: 10px;
+            background: #f0f6ff; border: 1px solid rgba(26,111,244,0.15);
+            border-radius: 9px; padding: 6px 12px;
+            margin-bottom: 10px; width: fit-content;
+        }
+        .bp-time-block {
+            display: flex; flex-direction: column; align-items: center; gap: 1px;
+        }
+        .bp-time-block b { font-size: 0.95rem; font-weight: 800; color: var(--primary); }
+        .bp-time-block span { font-size: 0.65rem; color: var(--mid); font-weight: 600; text-transform: uppercase; }
+        .bp-time-block small { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .bp-time-sep { color: var(--primary); font-weight: 700; font-size: 0.9rem; }
             font-weight: 500;
         }
 
@@ -362,6 +386,79 @@ while ($s = $stats_q->fetch_assoc()) {
             .stats-strip { grid-template-columns: repeat(3,1fr); }
             .bp-img { width: 70px; }
             .bp-city { font-size: 1.2rem; }
+        }
+
+        /* ══ FOOTER STYLING ══ */
+        footer {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0d1f35 100%);
+            color: rgba(255, 255, 255, 0.75);
+            padding: 36px 32px;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            text-align: center;
+        }
+        .footer-container p {
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+        .footer-container a {
+            color: #60a5fa;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .footer-container a:hover {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+        .social-icons {
+            display: flex;
+            gap: 12px;
+            margin: 4px 0;
+        }
+        .social-icons a {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff !important;
+            font-size: 1rem;
+            transition: all 0.25s;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .social-icons a:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 111, 244, 0.35);
+        }
+        .contact-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.55);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 14px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .contact-info span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
     </style>
 </head>
@@ -469,6 +566,29 @@ while ($s = $stats_q->fetch_assoc()) {
                             </div>
                             <span class="bp-city"><?= htmlspecialchars(strtoupper(substr($b['to_location'] ?? $b['arrival'], 0, 3))) ?></span>
                         </div>
+
+                        <?php
+                        // Live times: prefer schedule table, fall back to flights table
+                        $dep_t = substr(!empty($b['sched_dep_time']) ? $b['sched_dep_time'] : ($b['departure_time'] ?? ''), 0, 5);
+                        $arr_t = substr(!empty($b['sched_arr_time']) ? $b['sched_arr_time'] : ($b['arrival_time']   ?? ''), 0, 5);
+                        $dep_day = $b['departure_day'] ?? '';
+                        $arr_day = $b['arrival_day']   ?? '';
+                        ?>
+                        <?php if ($dep_t || $dep_day): ?>
+                        <div class="bp-times">
+                            <span class="bp-time-block">
+                                <?php if ($dep_t): ?><b><?= htmlspecialchars($dep_t) ?></b><?php endif; ?>
+                                <?php if ($dep_day): ?><span><?= htmlspecialchars($dep_day) ?></span><?php endif; ?>
+                                <small>Dep</small>
+                            </span>
+                            <span class="bp-time-sep">→</span>
+                            <span class="bp-time-block">
+                                <?php if ($arr_t): ?><b><?= htmlspecialchars($arr_t) ?></b><?php endif; ?>
+                                <?php if ($arr_day): ?><span><?= htmlspecialchars($arr_day) ?></span><?php endif; ?>
+                                <small>Arr</small>
+                            </span>
+                        </div>
+                        <?php endif; ?>
 
                         <div class="bp-flight-name">
                             <?= htmlspecialchars($b['flight_name']) ?>

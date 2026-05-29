@@ -1,19 +1,99 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-require_once "../model/FlightModel.php";
-$flightModel = new FlightModel();
+require_once __DIR__ . "/../model/db_conn.php";
 
 // Guard — must have a valid id
 if (empty($_GET['id'])) {
-    header("Location: /flight_booking/view/addFlight.php");
-    exit;
+    header("Location: /flight_booking/view/addFlight.php"); exit;
 }
 
-$flight = $flightModel->getFlightById((int)$_GET['id']);
+$flight_id = (int)$_GET['id'];
+
+// ── Handle update (PRG) — before any output ──────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $uploadDir = __DIR__ . "/upload/";
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+    if (!empty($_FILES['image']['name'])) {
+        $imageName = time() . '_' . basename($_FILES['image']['name']);
+        move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $imageName);
+    } else {
+        $imageName = $_POST['old_image'];
+    }
+
+    $id             = !empty($_POST['id']) ? (int)$_POST['id'] : $flight_id;
+    $flight_name    = trim($_POST['flight_name']);
+    $airline_name   = trim($_POST['airline_name']);
+    $flight_code    = trim($_POST['flight_code']);
+    $departure      = trim($_POST['departure']);
+    $arrival        = trim($_POST['arrival']);
+    $departure_time = $_POST['departure_time'] ?? '00:00';
+    $arrival_time   = $_POST['arrival_time']   ?? '00:00';
+    $duration       = trim($_POST['duration']);
+    $price          = (float)$_POST['price'];
+    $flight_class   = in_array($_POST['flight_class'] ?? '', ['Economy','Business','First Class']) ? $_POST['flight_class'] : 'Economy';
+    $seat_class     = $flight_class; // keep in sync
+    $total_seats    = (int)($_POST['total_seats'] ?? 180);
+    $seat           = (int)($_POST['seat']        ?? $total_seats);
+    $discount_pct   = (float)($_POST['discount_pct'] ?? 0);
+    $status         = in_array($_POST['status'] ?? '', ['active','inactive','cancelled']) ? $_POST['status'] : 'active';
+
+    $sql = "UPDATE flights SET
+                flight_name=?, airline_name=?, flight_code=?,
+                departure=?, arrival=?, departure_time=?, arrival_time=?,
+                duration=?, price=?, flight_class=?, seat_class=?,
+                total_seats=?, seat=?, discount_pct=?, status=?, image=?
+            WHERE id=?";
+
+    $stmt = $conn->prepare($sql);
+    if ($stmt) {
+        $stmt->bind_param("ssssssssdssiidssi",
+            $flight_name, $airline_name, $flight_code,
+            $departure, $arrival, $departure_time, $arrival_time,
+            $duration, $price, $flight_class, $seat_class,
+            $total_seats, $seat, $discount_pct, $status, $imageName,
+            $id
+        );
+        try {
+            if ($stmt->execute()) {
+                $_SESSION['flight_msg']      = 'Flight updated successfully!';
+                $_SESSION['flight_msg_type'] = 'success';
+            } else {
+                $_SESSION['flight_msg']      = 'DB Execute error: ' . $stmt->error . ' (errno:' . $stmt->errno . ')';
+                $_SESSION['flight_msg_type'] = 'error';
+            }
+        } catch (mysqli_sql_exception $e) {
+            if ($e->getCode() === 1062) {
+                $_SESSION['flight_msg']      = "Error: Flight code '" . htmlspecialchars($flight_code) . "' already exists.";
+            } else {
+                $_SESSION['flight_msg']      = 'DB Execute error: ' . $e->getMessage();
+            }
+            $_SESSION['flight_msg_type'] = 'error';
+            // If a new image was uploaded but db update failed, clean it up
+            if (!empty($_FILES['image']['name'])) {
+                $p = $uploadDir . $imageName;
+                if (file_exists($p)) unlink($p);
+            }
+        }
+        $stmt->close();
+    } else {
+        $_SESSION['flight_msg']      = 'DB Prepare error: ' . $conn->error . ' (errno:' . $conn->errno . ')';
+        $_SESSION['flight_msg_type'] = 'error';
+    }
+
+    header("Location: /flight_booking/view/addFlight.php"); exit;
+}
+
+// ── Fetch flight ─────────────────────────────────────────────
+$stmt = $conn->prepare("SELECT * FROM flights WHERE id = ?");
+$stmt->bind_param("i", $flight_id);
+$stmt->execute();
+$flight = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
 if (!$flight) {
-    header("Location: /flight_booking/view/addFlight.php");
-    exit;
+    header("Location: /flight_booking/view/addFlight.php"); exit;
 }
 
 include("../includes/adminheader.php");
@@ -237,11 +317,13 @@ include("../includes/adminheader.php");
         </div>
 
         <div class="ef-card-body">
-            <form action="../controller/FlightController.php" method="POST"
+            <form action="/flight_booking/view/editFlight.php?id=<?= (int)$flight['id'] ?>" method="POST"
                   enctype="multipart/form-data" id="editFlightForm">
 
-                <input type="hidden" name="id"        value="<?= (int)$flight['id'] ?>">
-                <input type="hidden" name="old_image" value="<?= htmlspecialchars($flight['image']) ?>">
+                <input type="hidden" name="id"           value="<?= (int)$flight['id'] ?>">
+                <input type="hidden" name="old_image"    value="<?= htmlspecialchars($flight['image']) ?>">
+                <input type="hidden" name="seat"         value="<?= (int)($flight['seat'] ?? $flight['total_seats'] ?? 0) ?>">
+                <input type="hidden" name="discount_pct" value="<?= (float)($flight['discount_pct'] ?? 0) ?>">
 
                 <div id="efErrorMessages"></div>
 
@@ -304,7 +386,7 @@ include("../includes/adminheader.php");
                         <div class="ef-wrap">
                             <span class="ef-ico">🕐</span>
                             <input type="time" name="departure_time" id="departure_time"
-                                   value="<?= htmlspecialchars($flight['departure_time'] ?? '') ?>" required>
+                                   value="<?= !empty($flight['departure_time']) ? date('H:i', strtotime($flight['departure_time'])) : '' ?>" required>
                         </div>
                     </div>
                     <div class="ef-field">
@@ -312,7 +394,7 @@ include("../includes/adminheader.php");
                         <div class="ef-wrap">
                             <span class="ef-ico">🕔</span>
                             <input type="time" name="arrival_time" id="arrival_time"
-                                   value="<?= htmlspecialchars($flight['arrival_time'] ?? '') ?>" required>
+                                   value="<?= !empty($flight['arrival_time']) ? date('H:i', strtotime($flight['arrival_time'])) : '' ?>" required>
                         </div>
                     </div>
                 </div>
@@ -422,7 +504,7 @@ function previewEfImage(input) {
     }
 }
 </script>
-<script src="../controller/editFlightValidation.js"></script>
+<script src="../controller/editFlightValidation.js?v=<?= time() ?>"></script>
 
 </body>
 </html>

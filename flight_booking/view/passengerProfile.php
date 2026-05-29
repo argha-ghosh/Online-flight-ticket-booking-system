@@ -256,6 +256,79 @@ if (!empty($user['image']) && file_exists(__DIR__ . "/uploads/" . $user['image']
             .page-content{padding:20px 16px}
             .topbar{padding:14px 16px}
         }
+
+        /* ══ FOOTER STYLING ══ */
+        footer {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0d1f35 100%);
+            color: rgba(255, 255, 255, 0.75);
+            padding: 36px 32px;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            text-align: center;
+        }
+        .footer-container p {
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+        .footer-container a {
+            color: #60a5fa;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .footer-container a:hover {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+        .social-icons {
+            display: flex;
+            gap: 12px;
+            margin: 4px 0;
+        }
+        .social-icons a {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff !important;
+            font-size: 1rem;
+            transition: all 0.25s;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .social-icons a:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 111, 244, 0.35);
+        }
+        .contact-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.55);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 14px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .contact-info span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
     </style>
 
 <div class="dashboard">

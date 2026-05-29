@@ -178,6 +178,7 @@ $admin_email = $_SESSION['email'] ?? '';
     <div class="header-container">
         <h1>&#128737; Admin Panel</h1>
         <nav>
+            <a href="/flight_booking/view/adminAnalytics.php">Analytics</a>
             <a href="/flight_booking/view/addAirline.php">Airlines</a>
             <a href="/flight_booking/view/addFlight.php">Flights</a>
             <a href="/flight_booking/view/adduser.php">Add User</a>
@@ -194,8 +195,9 @@ $admin_email = $_SESSION['email'] ?? '';
                         <div class="d-name">Administrator</div>
                         <div class="d-email"><?= htmlspecialchars($admin_email) ?></div>
                     </div>
+                    <a href="/flight_booking/view/adminAnalytics.php">📊 System Analytics</a>
                     <a href="/flight_booking/view/adminprofile.php">&#128100; View Profile</a>
-                    <a href="/flight_booking/view/changePassword.php">&#128274; Change Password</a>
+                    <a href="/flight_booking/view/adminChangePassword.php">&#128274; Change Password</a>
                     <a href="/flight_booking/logout.php" class="logout-link">&#128682; Log Out</a>
                 </div>
             </div>

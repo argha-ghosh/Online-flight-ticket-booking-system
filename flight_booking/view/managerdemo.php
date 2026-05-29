@@ -1,349 +1,520 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) session_start();
 include("../model/db_conn.php");
 
-// Handle AJAX request for flight details - MUST be before any output
-if (isset($_GET['action']) && $_GET['action'] == 'get_flight') {
+// ── AJAX: get flight details by code ────────────────────────
+if (isset($_GET['action']) && $_GET['action'] === 'get_flight') {
     header('Content-Type: application/json');
-    $flight_code = isset($_GET['code']) ? $_GET['code'] : '';
-    
-    if (!empty($flight_code)) {
-        $query = "SELECT flight_name, airline_name FROM flights WHERE flight_code = ?";
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param("s", $flight_code);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            $flight = $result->fetch_assoc();
-            echo json_encode([
-                'success' => true,
-                'flight_name' => $flight['flight_name'],
-                'airline_name' => $flight['airline_name']
-            ]);
-        } else {
-            echo json_encode(['success' => false]);
-        }
+    $code = trim($_GET['code'] ?? '');
+    if ($code) {
+        $s = $conn->prepare("SELECT flight_name, airline_name FROM flights WHERE flight_code = ?");
+        $s->bind_param("s", $code);
+        $s->execute();
+        $row = $s->get_result()->fetch_assoc();
+        echo $row ? json_encode(['success'=>true,'flight_name'=>$row['flight_name'],'airline_name'=>$row['airline_name']])
+                  : json_encode(['success'=>false]);
     } else {
-        echo json_encode(['success' => false]);
+        echo json_encode(['success'=>false]);
     }
     exit;
 }
 
-include("../includes/managerheader.php");
-
-
-// Helper function to extract time from database value
-function extractTime($timeValue) {
-    if (empty($timeValue)) {
-        return '00:00';
-    }
-    
-    // Convert to string in case it's not
-    $timeValue = (string)$timeValue;
-    
-    // If it's already in HH:MM format, return as is
-    if (strlen($timeValue) == 5 && strpos($timeValue, ':') !== false) {
-        return $timeValue;
-    }
-    
-    // If it contains a space (datetime format like "2000-01-01 12:30:00"), extract the time
-    if (strpos($timeValue, ' ') !== false) {
-        $parts = explode(' ', $timeValue);
-        $timePart = end($parts); // Get the time part
-        return substr($timePart, 0, 5); // Get HH:MM
-    }
-    
-    // If it's a full datetime format (YYYY-MM-DD HH:MM:SS), extract time portion
-    if (strlen($timeValue) >= 8 && strpos($timeValue, ':') !== false) {
-        $matches = [];
-        if (preg_match('/(\d{2}):(\d{2}):?(\d{2})?/', $timeValue, $matches)) {
-            return $matches[1] . ':' . $matches[2]; // Return HH:MM
-        }
-    }
-    
-    return '00:00'; // Fallback
+// Guard
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
+    header("Location: /flight_booking/view/login.php"); exit;
 }
 
-// Handle search
-$search_code = isset($_POST['search_code']) ? $_POST['search_code'] : '';
-$selected_flight = null;
-
-// Fetch flights - with or without search filter
-if (!empty($search_code)) {
-    $flights_query = "SELECT * FROM flights WHERE flight_code LIKE '%$search_code%'";
-    $stmt = $conn->prepare("SELECT flight_name, airline_name FROM flights WHERE flight_code = ?");
-    $stmt->bind_param("s", $search_code);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $selected_flight = $result->fetch_assoc();
-    }
-} else {
-    $flights_query = "SELECT * FROM flights";
-}
-$flights_result = $conn->query($flights_query);
-
-// Handle delete schedule
-if (isset($_GET['delete_schedule']) && !empty($_GET['delete_schedule'])) {
-    $delete_code = $_GET['delete_schedule'];
-    $delete_query = "DELETE FROM schedule WHERE flight_code = ?";
-    $delete_stmt = $conn->prepare($delete_query);
-    $delete_stmt->bind_param("s", $delete_code);
-    if ($delete_stmt->execute()) {
-        header("Location: managerdemo.php");
-        exit;
-    }
+// ── Helper ───────────────────────────────────────────────────
+function extractTime($v) {
+    $v = (string)$v;
+    if (strlen($v) === 5 && str_contains($v, ':')) return $v;
+    if (str_contains($v, ' ')) { $p = explode(' ', $v); $v = end($p); }
+    if (preg_match('/(\d{2}):(\d{2})/', $v, $m)) return $m[1].':'.$m[2];
+    return '00:00';
 }
 
-// Handle schedule save
-$schedule_message = "";
+// ── Delete schedule (PRG) ────────────────────────────────────
+if (isset($_GET['delete_schedule'])) {
+    $code = $_GET['delete_schedule'];
+    $s = $conn->prepare("DELETE FROM schedule WHERE flight_code = ?");
+    $s->bind_param("s", $code);
+    $s->execute();
+    $_SESSION['mgr_msg']      = "Schedule deleted.";
+    $_SESSION['mgr_msg_type'] = "success";
+    header("Location: /flight_booking/view/managerdemo.php"); exit;
+}
+
+// ── Save / update schedule (PRG) ────────────────────────────
 if (isset($_POST['save_schedule'])) {
-    $flight_name = $_POST['flight_name'] ?? '';
-    $airline_name = $_POST['airline_name'] ?? '';
-    $flight_code = $_POST['flight_code'] ?? '';
-    $departure_from = $_POST['departure_from'] ?? '';
-    $departure_time = $_POST['departure_time'] ?? '';
-    $arrival_to = $_POST['arrival_to'] ?? '';
-    $arrival_time = $_POST['arrival_time'] ?? '';
-    
-    // Validate required fields including times
-    if (empty($flight_code) || empty($flight_name) || empty($airline_name) || empty($departure_time) || empty($arrival_time)) {
-        $schedule_message = "❌ Please fill in all required fields (flight code, name, airline, and times)!";
-    } else if (empty($departure_from) || empty($arrival_to)) {
-        $schedule_message = "❌ Please select departure and arrival days!";
+    $flight_name  = trim($_POST['flight_name']    ?? '');
+    $airline_name = trim($_POST['airline_name']   ?? '');
+    $flight_code  = trim($_POST['flight_code']    ?? '');
+    $dep_day      = $_POST['departure_from']      ?? '';
+    $dep_time     = ($_POST['departure_time']     ?? '') . ':00';
+    $arr_day      = $_POST['arrival_to']          ?? '';
+    $arr_time     = ($_POST['arrival_time']       ?? '') . ':00';
+
+    if (!$flight_code || !$flight_name || !$airline_name || !$dep_day || !$arr_day) {
+        $_SESSION['mgr_msg']      = "All fields are required.";
+        $_SESSION['mgr_msg_type'] = "error";
     } else {
-        // Ensure proper time format: Append ':00' to match HH:MM:SS format
-        $departure_time .= ':00';
-        $arrival_time .= ':00';
-        
-        // Check if flight code already exists
-        $check_query = "SELECT * FROM schedule WHERE flight_code = ?";
-        $check_stmt = $conn->prepare($check_query);
-        $check_stmt->bind_param("s", $flight_code);
-        $check_stmt->execute();
-        $check_result = $check_stmt->get_result();
-        
-        if ($check_result->num_rows > 0) {
-            // Update existing schedule
-            $update_query = "UPDATE schedule SET flight_name = ?, airline_name = ?, departure_day = ?, departure_time = ?, arrival_day = ?, arrival_time = ? WHERE flight_code = ?";
-            $update_stmt = $conn->prepare($update_query);
-            $update_stmt->bind_param("sssssss", $flight_name, $airline_name, $departure_from, $departure_time, $arrival_to, $arrival_time, $flight_code);
-            
-            if ($update_stmt->execute()) {
-                $schedule_message = "✓ Schedule updated successfully!";
-            } else {
-                $schedule_message = "❌ Error updating schedule: " . $update_stmt->error;
-            }
+        $chk = $conn->prepare("SELECT id FROM schedule WHERE flight_code = ?");
+        $chk->bind_param("s", $flight_code); $chk->execute();
+        $chk->store_result();
+        $exists = $chk->num_rows > 0; $chk->close();
+
+        if ($exists) {
+            $s = $conn->prepare("UPDATE schedule SET flight_name=?,airline_name=?,departure_day=?,departure_time=?,arrival_day=?,arrival_time=? WHERE flight_code=?");
+            $s->bind_param("sssssss",$flight_name,$airline_name,$dep_day,$dep_time,$arr_day,$arr_time,$flight_code);
         } else {
-            // Insert new schedule
-            $insert_query = "INSERT INTO schedule (flight_name, airline_name, flight_code, departure_day, departure_time, arrival_day, arrival_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            $insert_stmt = $conn->prepare($insert_query);
-            $insert_stmt->bind_param("sssssss", $flight_name, $airline_name, $flight_code, $departure_from, $departure_time, $arrival_to, $arrival_time);
-            
-            if ($insert_stmt->execute()) {
-                $schedule_message = "✓ Schedule saved successfully!";
-            } else {
-                $schedule_message = "❌ Error saving schedule: " . $insert_stmt->error;
-            }
+            $s = $conn->prepare("INSERT INTO schedule (flight_name,airline_name,flight_code,departure_day,departure_time,arrival_day,arrival_time) VALUES (?,?,?,?,?,?,?)");
+            $s->bind_param("sssssss",$flight_name,$airline_name,$flight_code,$dep_day,$dep_time,$arr_day,$arr_time);
         }
+        $s->execute();
+        $_SESSION['mgr_msg']      = $exists ? "Schedule updated successfully!" : "Schedule saved successfully!";
+        $_SESSION['mgr_msg_type'] = "success";
     }
+    header("Location: /flight_booking/view/managerdemo.php"); exit;
 }
 
-// Fetch all schedules
-$schedules_query = "SELECT * FROM schedule";
-$schedules_result = $conn->query($schedules_query);
+// Consume flash
+$flash_msg  = $_SESSION['mgr_msg']      ?? '';
+$flash_type = $_SESSION['mgr_msg_type'] ?? '';
+unset($_SESSION['mgr_msg'], $_SESSION['mgr_msg_type']);
 
+// Fetch data
+$flights   = [];
+$res = $conn->query("SELECT * FROM flights ORDER BY id DESC");
+if ($res) while ($r = $res->fetch_assoc()) $flights[] = $r;
+
+$schedules = [];
+$res2 = $conn->query("SELECT * FROM schedule ORDER BY flight_code ASC");
+if ($res2) while ($r = $res2->fetch_assoc()) $schedules[] = $r;
+
+// Stats
+$total_flights   = count($flights);
+$total_schedules = count($schedules);
+$active_flights  = count(array_filter($flights, fn($f) => ($f['status'] ?? 'active') === 'active'));
+$avg_price       = $total_flights ? array_sum(array_column($flights, 'price')) / $total_flights : 0;
+
+include("../includes/managerheader.php");
 ?>
- 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
- 
-    <link rel ="stylesheet" href= "component.css">
-    <link rel ="stylesheet" href= "flight_schedule.css">
-    <link rel ="stylesheet" href= "managerdemo.css">
-</head>
-<body>
-    <div class="flights-container">
-        <h2>Available Flights</h2>
-        
-        <!-- Search Bar -->
-        <div class="search-section">
-            <form method="POST">
-                <input type="text" name="search_code"  value="<?= htmlspecialchars($search_code); ?>">
-                <button type="submit">Search</button>
-                <?php if (!empty($search_code)) { ?>
-                    <a href="managerdemo.php" style="text-decoration: none;">
-                        <button type="button" class="clear-btn">Clear</button>
-                    </a>
-                <?php } ?>
+<style>
+.mgr-wrap { flex:1; padding:28px 32px 60px; }
+.mgr-wrap * { box-sizing:border-box; }
+
+/* ── Top bar ── */
+.mgr-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.mgr-topbar h1 { font-size:1.35rem; font-weight:800; color:#0f172a; letter-spacing:-0.3px; }
+.mgr-topbar p  { font-size:0.82rem; color:#64748b; margin-top:2px; }
+.mgr-search-wrap { position:relative; }
+.mgr-search-wrap input {
+    padding:9px 14px 9px 36px; border:1.5px solid #e2e8f0; border-radius:10px;
+    font-size:0.87rem; background:#fff; outline:none; font-family:inherit;
+    color:#1e293b; width:260px; transition:border-color 0.2s, box-shadow 0.2s;
+}
+.mgr-search-wrap input:focus { border-color:#0b72e6; box-shadow:0 0 0 3px rgba(11,114,230,0.1); }
+.mgr-search-wrap .s-ico { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:0.85rem; pointer-events:none; }
+
+/* ── Flash ── */
+.mgr-flash {
+    display:flex; align-items:center; gap:10px; padding:12px 18px;
+    border-radius:12px; font-size:0.87rem; font-weight:600;
+    margin-bottom:20px; animation:mgrFade 0.3s ease;
+}
+@keyframes mgrFade { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+.mgr-flash.success { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; }
+.mgr-flash.error   { background:#fff5f5; border:1px solid #fecaca; color:#dc2626; }
+.mgr-flash .mgr-close { margin-left:auto; cursor:pointer; opacity:0.5; font-size:0.95rem; background:none; border:none; color:inherit; padding:0; font-family:inherit; }
+
+/* ── Stat cards ── */
+.mgr-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+.mgr-stat { background:#fff; border-radius:16px; padding:18px 20px; border:1px solid #e8f0fb; box-shadow:0 2px 12px rgba(11,114,230,0.06); display:flex; align-items:center; gap:14px; }
+.mgr-stat-icon { width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+.mgr-stat-icon.blue   { background:#eff6ff; }
+.mgr-stat-icon.green  { background:#f0fdf4; }
+.mgr-stat-icon.purple { background:#f5f3ff; }
+.mgr-stat-icon.amber  { background:#fffbeb; }
+.mgr-stat-val { font-size:1.4rem; font-weight:800; color:#0f172a; line-height:1; }
+.mgr-stat-lbl { font-size:0.75rem; color:#64748b; margin-top:3px; }
+
+/* ── Card ── */
+.mgr-card { background:#fff; border-radius:20px; box-shadow:0 4px 24px rgba(11,114,230,0.08); border:1px solid #e8f0fb; overflow:hidden; margin-bottom:24px; }
+.mgr-card-head { padding:16px 24px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; background:#fafcff; }
+.mgr-card-head h2 { font-size:0.95rem; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px; }
+.mgr-card-head h2::before { content:''; display:inline-block; width:3px; height:1em; background:linear-gradient(180deg,#0b72e6,#6c3de8); border-radius:3px; }
+.mgr-badge { font-size:0.75rem; font-weight:700; padding:4px 12px; border-radius:20px; background:linear-gradient(135deg,#0b72e6,#6c3de8); color:#fff; }
+
+/* ── Table ── */
+.mgr-table-wrap { overflow-x:auto; }
+table.mgr-table { width:100%; border-collapse:collapse; font-size:0.86rem; }
+.mgr-table thead tr { background:#f8fafc; border-bottom:2px solid #e8f0fb; }
+.mgr-table th { padding:12px 16px; text-align:left; font-size:0.72rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.6px; white-space:nowrap; }
+.mgr-table tbody tr { border-bottom:1px solid #f1f5f9; transition:background 0.15s; }
+.mgr-table tbody tr:hover { background:#fafcff; }
+.mgr-table td { padding:13px 16px; color:#334155; vertical-align:middle; }
+
+/* Route */
+.mgr-route { display:flex; align-items:center; gap:6px; font-weight:600; color:#0f172a; }
+.mgr-route .arr { color:#0b72e6; }
+
+/* Status badge */
+.mgr-status { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; font-weight:700; padding:3px 9px; border-radius:20px; text-transform:uppercase; }
+.mgr-status.active    { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; }
+.mgr-status.inactive  { background:#fee2e2; color:#dc2626; border:1px solid #fecaca; }
+.mgr-status.cancelled { background:#fef9c3; color:#92400e; border:1px solid #fde68a; }
+
+/* Tags */
+.mgr-tag { font-size:0.72rem; font-weight:600; padding:3px 9px; border-radius:20px; }
+.mgr-tag.blue   { background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; }
+.mgr-tag.purple { background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; }
+
+/* Price */
+.mgr-price { font-weight:700; color:#0b72e6; }
+
+/* Action buttons */
+.mgr-btn-edit { padding:7px 14px; background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.18s; white-space:nowrap; }
+.mgr-btn-edit:hover { background:#2563eb; color:#fff; border-color:#2563eb; }
+.mgr-btn-del  { padding:7px 14px; background:#fff5f5; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:0.78rem; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.18s; text-decoration:none; display:inline-flex; align-items:center; }
+.mgr-btn-del:hover  { background:#dc2626; color:#fff; border-color:#dc2626; }
+
+/* Empty */
+.mgr-empty { text-align:center; padding:50px 20px; color:#94a3b8; }
+.mgr-empty .ei { font-size:3rem; display:block; margin-bottom:10px; opacity:0.4; }
+
+/* ── Schedule form panel ── */
+.mgr-sched-form { padding:24px; }
+.mgr-sched-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; align-items:end; }
+.mgr-sf { display:flex; flex-direction:column; gap:6px; }
+.mgr-sf label { font-size:0.72rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; }
+.mgr-sf input, .mgr-sf select {
+    padding:10px 13px; border:1.5px solid #e2e8f0; border-radius:10px;
+    font-size:0.88rem; color:#1e293b; background:#f8fafc;
+    outline:none; font-family:inherit; appearance:none;
+    transition:border-color 0.2s, box-shadow 0.2s;
+}
+.mgr-sf input:focus, .mgr-sf select:focus { border-color:#0b72e6; background:#fff; box-shadow:0 0 0 3px rgba(11,114,230,0.1); }
+.mgr-sf input[readonly] { color:#64748b; cursor:default; }
+.mgr-sf .sel-w { position:relative; }
+.mgr-sf .sel-w::after { content:'▾'; position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#94a3b8; pointer-events:none; font-size:0.78rem; }
+.mgr-sf .sel-w select { padding-right:28px; width:100%; }
+.mgr-sched-actions { display:flex; gap:10px; align-items:flex-end; }
+.mgr-btn-save {
+    padding:10px 22px; background:linear-gradient(135deg,#0b72e6,#6c3de8);
+    color:#fff; border:none; border-radius:10px; font-size:0.9rem; font-weight:700;
+    cursor:pointer; font-family:inherit; box-shadow:0 3px 12px rgba(11,114,230,0.3);
+    transition:opacity 0.2s, transform 0.15s; white-space:nowrap;
+}
+.mgr-btn-save:hover { opacity:0.9; transform:translateY(-1px); }
+.mgr-btn-reset { padding:10px 18px; background:#fff; color:#64748b; border:1.5px solid #e2e8f0; border-radius:10px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+.mgr-btn-reset:hover { border-color:#94a3b8; color:#334155; }
+
+/* Day badge */
+.mgr-day { display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:600; color:#0f172a; }
+
+/* Responsive */
+@media (max-width:900px) { .mgr-stats { grid-template-columns:1fr 1fr; } .mgr-wrap { padding:16px 14px 40px; } }
+@media (max-width:500px) { .mgr-stats { grid-template-columns:1fr; } .mgr-search-wrap input { width:100%; } }
+</style>
+
+<div class="mgr-wrap">
+
+    <!-- Top bar -->
+    <div class="mgr-topbar">
+        <div>
+            <h1>✈️ Manage Flights</h1>
+            <p>View flights and manage weekly schedules</p>
+        </div>
+        <div class="mgr-search-wrap">
+            <span class="s-ico">🔍</span>
+            <input type="text" id="mgrSearch" placeholder="Search flights…" oninput="mgrFilter(this.value)">
+        </div>
+    </div>
+
+    <!-- Flash -->
+    <?php if ($flash_msg): ?>
+        <div class="mgr-flash <?= htmlspecialchars($flash_type) ?>" id="mgrFlash">
+            <span><?= $flash_type === 'success' ? '✅' : '❌' ?></span>
+            <?= htmlspecialchars($flash_msg) ?>
+            <button class="mgr-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+    <?php endif; ?>
+
+    <!-- Stats -->
+    <div class="mgr-stats">
+        <div class="mgr-stat">
+            <div class="mgr-stat-icon blue">🛫</div>
+            <div><div class="mgr-stat-val"><?= $total_flights ?></div><div class="mgr-stat-lbl">Total Flights</div></div>
+        </div>
+        <div class="mgr-stat">
+            <div class="mgr-stat-icon green">✅</div>
+            <div><div class="mgr-stat-val"><?= $active_flights ?></div><div class="mgr-stat-lbl">Active</div></div>
+        </div>
+        <div class="mgr-stat">
+            <div class="mgr-stat-icon purple">📅</div>
+            <div><div class="mgr-stat-val"><?= $total_schedules ?></div><div class="mgr-stat-lbl">Schedules</div></div>
+        </div>
+        <div class="mgr-stat">
+            <div class="mgr-stat-icon amber">💵</div>
+            <div><div class="mgr-stat-val">$<?= number_format($avg_price, 0) ?></div><div class="mgr-stat-lbl">Avg. Price</div></div>
+        </div>
+    </div>
+
+    <!-- ══ Flights Table ══ -->
+    <div class="mgr-card">
+        <div class="mgr-card-head">
+            <h2>Available Flights</h2>
+            <span class="mgr-badge"><?= $total_flights ?> flights</span>
+        </div>
+        <div class="mgr-table-wrap">
+            <?php if (empty($flights)): ?>
+                <div class="mgr-empty"><span class="ei">🛫</span><p>No flights found.</p></div>
+            <?php else: ?>
+            <table class="mgr-table" id="mgrFlightsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Flight</th>
+                        <th>Airline</th>
+                        <th>Route</th>
+                        <th>Time</th>
+                        <th>Duration</th>
+                        <th>Class</th>
+                        <th>Price</th>
+                        <th>Seats</th>
+                        <th>Status</th>
+                        <th>Schedule</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($flights as $i => $f):
+                    $status     = $f['status']      ?? 'active';
+                    $cls        = $f['flight_class'] ?? ($f['seat_class'] ?? 'Economy');
+                    $dep_time   = extractTime($f['departure_time'] ?? '');
+                    $arr_time   = extractTime($f['arrival_time']   ?? '');
+                ?>
+                    <tr data-name="<?= strtolower(htmlspecialchars($f['flight_name'])) ?>"
+                        data-airline="<?= strtolower(htmlspecialchars($f['airline_name'])) ?>"
+                        data-code="<?= strtolower(htmlspecialchars($f['flight_code'])) ?>">
+                        <td style="color:#94a3b8;font-size:0.8rem;"><?= $i+1 ?></td>
+                        <td>
+                            <div style="font-weight:700;color:#0f172a;"><?= htmlspecialchars($f['flight_name']) ?></div>
+                            <div style="font-size:0.75rem;color:#64748b;"><?= htmlspecialchars($f['flight_code']) ?></div>
+                        </td>
+                        <td><?= htmlspecialchars($f['airline_name']) ?></td>
+                        <td>
+                            <div class="mgr-route">
+                                <?= htmlspecialchars($f['departure']) ?>
+                                <span class="arr">→</span>
+                                <?= htmlspecialchars($f['arrival']) ?>
+                            </div>
+                        </td>
+                        <td style="font-size:0.82rem;color:#475569;">
+                            <?= $dep_time ?> – <?= $arr_time ?>
+                        </td>
+                        <td><?= htmlspecialchars($f['duration']) ?></td>
+                        <td><span class="mgr-tag purple"><?= htmlspecialchars($cls) ?></span></td>
+                        <td><span class="mgr-price">$<?= number_format((float)$f['price'], 2) ?></span></td>
+                        <td><?= (int)($f['seat'] ?? $f['total_seats'] ?? 0) ?></td>
+                        <td><span class="mgr-status <?= $status ?>"><?= ucfirst($status) ?></span></td>
+                        <td>
+                            <button class="mgr-btn-edit"
+                                onclick="mgrFillSchedule('<?= htmlspecialchars(addslashes($f['flight_code'])) ?>','<?= htmlspecialchars(addslashes($f['flight_name'])) ?>','<?= htmlspecialchars(addslashes($f['airline_name'])) ?>')">
+                                📅 Schedule
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ══ Add / Update Schedule ══ -->
+    <div class="mgr-card">
+        <div class="mgr-card-head">
+            <h2>Add / Update Schedule</h2>
+            <span class="mgr-badge" id="schedFormBadge">New Schedule</span>
+        </div>
+        <div class="mgr-sched-form">
+            <form method="POST" action="/flight_booking/view/managerdemo.php" id="schedForm">
+                <div class="mgr-sched-grid">
+                    <div class="mgr-sf">
+                        <label>Flight Code <span style="color:#e53e3e">*</span></label>
+                        <input type="text" name="flight_code" id="sched_code"
+                               placeholder="Enter or click Schedule above"
+                               required oninput="mgrAutoFetch(this.value)">
+                    </div>
+                    <div class="mgr-sf">
+                        <label>Flight Name</label>
+                        <input type="text" name="flight_name" id="sched_name" readonly placeholder="Auto-filled">
+                    </div>
+                    <div class="mgr-sf">
+                        <label>Airline</label>
+                        <input type="text" name="airline_name" id="sched_airline" readonly placeholder="Auto-filled">
+                    </div>
+                    <div class="mgr-sf">
+                        <label>Departure Day <span style="color:#e53e3e">*</span></label>
+                        <div class="sel-w">
+                            <select name="departure_from" id="sched_dep_day" required>
+                                <option value="">Select Day</option>
+                                <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
+                                    <option value="<?= $d ?>"><?= $d ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mgr-sf">
+                        <label>Departure Time <span style="color:#e53e3e">*</span></label>
+                        <input type="time" name="departure_time" id="sched_dep_time" required>
+                    </div>
+                    <div class="mgr-sf">
+                        <label>Arrival Day <span style="color:#e53e3e">*</span></label>
+                        <div class="sel-w">
+                            <select name="arrival_to" id="sched_arr_day" required>
+                                <option value="">Select Day</option>
+                                <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
+                                    <option value="<?= $d ?>"><?= $d ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mgr-sf">
+                        <label>Arrival Time <span style="color:#e53e3e">*</span></label>
+                        <input type="time" name="arrival_time" id="sched_arr_time" required>
+                    </div>
+                    <div class="mgr-sf mgr-sched-actions">
+                        <label>&nbsp;</label>
+                        <button type="submit" name="save_schedule" class="mgr-btn-save">💾 Save Schedule</button>
+                        <button type="reset" class="mgr-btn-reset" onclick="mgrResetForm()">✕ Reset</button>
+                    </div>
+                </div>
             </form>
         </div>
-        <?php if ($flights_result && $flights_result->num_rows > 0) { ?>
-            <table class="flights-table">
+    </div>
+
+    <!-- ══ Schedules List ══ -->
+    <div class="mgr-card">
+        <div class="mgr-card-head">
+            <h2>Flight Schedules</h2>
+            <span class="mgr-badge"><?= $total_schedules ?> schedules</span>
+        </div>
+        <div class="mgr-table-wrap">
+            <?php if (empty($schedules)): ?>
+                <div class="mgr-empty"><span class="ei">📅</span><p>No schedules yet. Add one above.</p></div>
+            <?php else: ?>
+            <table class="mgr-table">
                 <thead>
                     <tr>
-                        <th>Flight Name</th>
+                        <th>#</th>
+                        <th>Flight</th>
                         <th>Airline</th>
-                        <th>Flight Code</th>
+                        <th>Code</th>
                         <th>Departure</th>
                         <th>Arrival</th>
-                        <th>Duration</th>
-                        <th>Price</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php while ($flight = $flights_result->fetch_assoc()) { ?>
-                        <tr>
-                            <td><?= $flight['flight_name']; ?></td>
-                            <td><?= $flight['airline_name']; ?></td>
-                            <td><?= $flight['flight_code']; ?></td>
-                            <td><?= $flight['departure']; ?></td>
-                            <td><?= $flight['arrival']; ?></td>
-                            <td><?= $flight['duration']; ?></td>
-                            <td>$<?= number_format($flight['price'], 2); ?></td>
-                        </tr>
-                    <?php } ?>
-                </tbody>
-            </table>
-        <?php } else { ?>
-            <div class="error-message">
-                <p>❌ No flights found matching flight code: <strong><?= htmlspecialchars($search_code); ?></strong></p>
-                <p>Please check the flight code and try again.</p>
-            </div>
-        <?php } ?>
-    </div>
-
-    <!-- Schedule Management Form -->
-    <div class="schedule-container">
-        <h3>Add/Update Flight Schedule</h3>
-
-        <?php if (!empty($schedule_message)) { ?>
-            <div class="schedule-message"><?php echo $schedule_message; ?></div>
-        <?php } ?>
-
-        <form method="POST" action="">
-            <table class="schedule-table">
-                <thead>
-                    <tr>
-                        <th>Flight Name</th>
-                        <th>Airline Name</th>
-                        <th>Flight Code</th>
-                        <th>Departure Day</th>
-                        <th>Departure Time</th>
-                        <th>Arrival Day</th>
-                        <th>Arrival Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <input type="text" name="flight_name" id="flight_name" value="<?= $selected_flight ? $selected_flight['flight_name'] : ''; ?>" readonly required>
-                        </td>
-                        <td>
-                            <input type="text" name="airline_name" id="airline_name" value="<?= $selected_flight ? $selected_flight['airline_name'] : ''; ?>" readonly required>
-                        </td>
-                        <td>
-                            <input type="text" name="flight_code" id="flight_code" value="<?= htmlspecialchars($search_code); ?>" required onchange="fetchFlightDetails()">
-                        </td>
-                        <td>
-                            <select name="departure_from" id="departure_from" required>
-                                <option value="">Select Departure Day</option>
-                                <option value="Monday">Monday</option>
-                                <option value="Tuesday">Tuesday</option>
-                                <option value="Wednesday">Wednesday</option>
-                                <option value="Thursday">Thursday</option>
-                                <option value="Friday">Friday</option>
-                                <option value="Saturday">Saturday</option>
-                                <option value="Sunday">Sunday</option>
-                            </select>
-                        </td>
-                        <td>
-                            <input type="time" name="departure_time" id="departure_time" required>
-                        </td>
-                        <td>
-                            <select name="arrival_to" id="arrival_to" required>
-                                <option value="">Select Arrival Day</option>
-                                <option value="Monday">Monday</option>
-                                <option value="Tuesday">Tuesday</option>
-                                <option value="Wednesday">Wednesday</option>
-                                <option value="Thursday">Thursday</option>
-                                <option value="Friday">Friday</option>
-                                <option value="Saturday">Saturday</option>
-                                <option value="Sunday">Sunday</option>
-                            </select>
-                        </td>
-                        <td>
-                            <input type="time" name="arrival_time" id="arrival_time" required>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="schedule-btn-group">
-                <button type="submit" class="schedule-btn btn-save-schedule" name="save_schedule" onclick="return validateScheduleForm()">Save Schedule</button>
-                <button type="reset" class="schedule-btn btn-reset-schedule">Reset</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Schedule Listing -->
-    <div class="schedule-container">
-        <h3>Flight Schedules List</h3>
-
-        <?php if ($schedules_result && $schedules_result->num_rows > 0) { ?>
-            <table class="schedule-table">
-                <thead>
-                    <tr>
-                        <th>Flight Name</th>
-                        <th>Airline Name</th>
-                        <th>Flight Code</th>
-                        <th>Departure Day</th>
-                        <th>Departure Time</th>
-                        <th>Arrival Day</th>
-                        <th>Arrival Time</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php while ($schedule = $schedules_result->fetch_assoc()) { 
-                        // Extract only time portion (HH:MM) if stored as datetime
-                        $dept_time = extractTime($schedule['departure_time']);
-                        $arrv_time = extractTime($schedule['arrival_time']);
-                    ?>
-                        <tr>
-                            <td><?= htmlspecialchars($schedule['flight_name']); ?></td>
-                            <td><?= htmlspecialchars($schedule['airline_name']); ?></td>
-                            <td><?= htmlspecialchars($schedule['flight_code']); ?></td>
-                            <td><?= htmlspecialchars($schedule['departure_day']); ?></td>
-                            <td><?= htmlspecialchars($dept_time); ?></td>
-                            <td><?= htmlspecialchars($schedule['arrival_day']); ?></td>
-                            <td><?= htmlspecialchars($arrv_time); ?></td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="action-btn edit-btn" onclick="editSchedule('<?= htmlspecialchars($schedule['flight_code']); ?>', '<?= htmlspecialchars($schedule['flight_name']); ?>', '<?= htmlspecialchars($schedule['airline_name']); ?>', '<?= htmlspecialchars($schedule['departure_day']); ?>', '<?= htmlspecialchars($dept_time); ?>', '<?= htmlspecialchars($schedule['arrival_day']); ?>', '<?= htmlspecialchars($arrv_time); ?>')">Edit</button>
-                                    <a href="managerdemo.php?delete_schedule=<?= urlencode($schedule['flight_code']); ?>" class="action-btn delete-btn" onclick="return confirm('Are you sure you want to delete this schedule?');">Delete</a>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php } ?>
+                <?php foreach ($schedules as $i => $sc):
+                    $dt = extractTime($sc['departure_time']);
+                    $at = extractTime($sc['arrival_time']);
+                ?>
+                    <tr>
+                        <td style="color:#94a3b8;font-size:0.8rem;"><?= $i+1 ?></td>
+                        <td style="font-weight:600;color:#0f172a;"><?= htmlspecialchars($sc['flight_name']) ?></td>
+                        <td><?= htmlspecialchars($sc['airline_name']) ?></td>
+                        <td><span class="mgr-tag blue"><?= htmlspecialchars($sc['flight_code']) ?></span></td>
+                        <td>
+                            <div class="mgr-day">📅 <?= htmlspecialchars($sc['departure_day']) ?></div>
+                            <div style="font-size:0.78rem;color:#64748b;margin-top:2px;">🕐 <?= $dt ?></div>
+                        </td>
+                        <td>
+                            <div class="mgr-day">📅 <?= htmlspecialchars($sc['arrival_day']) ?></div>
+                            <div style="font-size:0.78rem;color:#64748b;margin-top:2px;">🕔 <?= $at ?></div>
+                        </td>
+                        <td style="display:flex;gap:8px;align-items:center;">
+                            <button class="mgr-btn-edit"
+                                onclick="mgrEditSchedule('<?= htmlspecialchars(addslashes($sc['flight_code'])) ?>','<?= htmlspecialchars(addslashes($sc['flight_name'])) ?>','<?= htmlspecialchars(addslashes($sc['airline_name'])) ?>','<?= htmlspecialchars($sc['departure_day']) ?>','<?= $dt ?>','<?= htmlspecialchars($sc['arrival_day']) ?>','<?= $at ?>')">
+                                ✏️ Edit
+                            </button>
+                            <a href="?delete_schedule=<?= urlencode($sc['flight_code']) ?>"
+                               class="mgr-btn-del"
+                               onclick="return confirm('Delete schedule for <?= htmlspecialchars(addslashes($sc['flight_code'])) ?>?')">
+                                🗑️ Delete
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
                 </tbody>
             </table>
-        <?php } else { ?>
-            <div class="error-message">
-                <p>No schedules found. Create a new schedule using the form above.</p>
-            </div>
-        <?php } ?>
+            <?php endif; ?>
+        </div>
     </div>
- 
+
+</div>
+
+<script>
+// Filter flights table
+function mgrFilter(q) {
+    q = q.toLowerCase().trim();
+    document.querySelectorAll('#mgrFlightsTable tbody tr').forEach(row => {
+        const match = !q || row.dataset.name.includes(q)
+                         || row.dataset.airline.includes(q)
+                         || row.dataset.code.includes(q);
+        row.style.display = match ? '' : 'none';
+    });
+}
+
+// Fill schedule form from flight row button
+function mgrFillSchedule(code, name, airline) {
+    document.getElementById('sched_code').value    = code;
+    document.getElementById('sched_name').value    = name;
+    document.getElementById('sched_airline').value = airline;
+    document.getElementById('schedFormBadge').textContent = 'Editing: ' + code;
+    document.getElementById('schedForm').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+// Fill schedule form from schedule list edit button
+function mgrEditSchedule(code, name, airline, depDay, depTime, arrDay, arrTime) {
+    document.getElementById('sched_code').value    = code;
+    document.getElementById('sched_name').value    = name;
+    document.getElementById('sched_airline').value = airline;
+    document.getElementById('sched_dep_day').value  = depDay;
+    document.getElementById('sched_dep_time').value = depTime;
+    document.getElementById('sched_arr_day').value  = arrDay;
+    document.getElementById('sched_arr_time').value = arrTime;
+    document.getElementById('schedFormBadge').textContent = 'Updating: ' + code;
+    document.getElementById('schedForm').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+// Auto-fetch flight name/airline when code is typed manually
+let mgrFetchTimer;
+function mgrAutoFetch(code) {
+    clearTimeout(mgrFetchTimer);
+    if (code.length < 2) return;
+    mgrFetchTimer = setTimeout(() => {
+        fetch('managerdemo.php?action=get_flight&code=' + encodeURIComponent(code))
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('sched_name').value    = d.flight_name;
+                    document.getElementById('sched_airline').value = d.airline_name;
+                }
+            });
+    }, 400);
+}
+
+function mgrResetForm() {
+    document.getElementById('schedFormBadge').textContent = 'New Schedule';
+}
+
+// Auto-dismiss flash
+const mgrFlash = document.getElementById('mgrFlash');
+if (mgrFlash) setTimeout(() => mgrFlash.remove(), 4000);
+</script>
+
 </body>
 </html>
-
-<script src="../controller/managerdemo.js"></script>
-
 <?php include("../includes/footer.php"); ?>
- 

@@ -1,107 +1,53 @@
-console.log('Edit Flight Validation script loaded');
 const form = document.getElementById('editFlightForm');
 if (form) {
-    console.log('Form found');
     form.addEventListener('submit', function(event) {
-        console.log('Edit Flight Validation triggered');
-        try {
-            const errors = [];
-            const errorDiv = document.getElementById('errorMessages');
+        const errors = [];
+        const errorDiv = document.getElementById('efErrorMessages') || document.getElementById('errorMessages');
+        if (errorDiv) {
             errorDiv.innerHTML = '';
+            errorDiv.style.display = 'none';
+        }
 
-            // Get form values
-            const flightName = document.getElementById('flight_name').value.trim();
-            const airlineName = document.getElementById('airline_name').value.trim();
-            const flightCode = document.getElementById('flight_code').value.trim();
-            const departure = document.getElementById('departure').value.trim();
-            const arrival = document.getElementById('arrival').value.trim();
-            const duration = document.getElementById('duration').value.trim();
-            const price = document.getElementById('price').value;
-            const imageFile = document.getElementById('image').files[0];
+        const flightNameEl = document.getElementById('flight_name');
+        const airlineNameEl = document.getElementById('airline_name');
+        const flightCodeEl = document.getElementById('flight_code');
+        const departureEl = document.getElementById('departure');
+        const arrivalEl = document.getElementById('arrival');
+        const durationEl = document.getElementById('duration');
+        const priceEl = document.getElementById('price');
+        const imageEl = document.getElementById('image');
 
-            // Validate Flight Name
-            if (!flightName) {
-                errors.push('Flight name is required.');
-            } else if (!/^[a-zA-Z0-9\s\-]+$/.test(flightName)) {
-                errors.push('Flight name should contain only letters, numbers, spaces, and hyphens.');
-            } else if (flightName.length < 2 || flightName.length > 50) {
-                errors.push('Flight name should be between 2 and 50 characters.');
-            }
+        const flightName = flightNameEl ? flightNameEl.value.trim() : '';
+        const airlineName = airlineNameEl ? airlineNameEl.value.trim() : '';
+        const flightCode = flightCodeEl ? flightCodeEl.value.trim() : '';
+        const departure = departureEl ? departureEl.value.trim() : '';
+        const arrival = arrivalEl ? arrivalEl.value.trim() : '';
+        const duration = durationEl ? durationEl.value.trim() : '';
+        const price = priceEl ? parseFloat(priceEl.value) : 0;
+        const imageFile = (imageEl && imageEl.files) ? imageEl.files[0] : null;
 
-            // Validate Airline Name
-            if (!airlineName) {
-                errors.push('Airline name is required.');
-            } else if (!/^[a-zA-Z\s]+$/.test(airlineName)) {
-                errors.push('Airline name should contain only letters and spaces.');
-            } else if (airlineName.length < 2 || airlineName.length > 50) {
-                errors.push('Airline name should be between 2 and 50 characters.');
-            }
+        if (!flightName)  errors.push('Flight name is required.');
+        if (!airlineName) errors.push('Airline name is required.');
+        if (!flightCode)  errors.push('Flight code is required.');
+        if (!departure)   errors.push('Departure city is required.');
+        if (!arrival)     errors.push('Arrival city is required.');
+        if (!duration)    errors.push('Duration is required.');
+        if (isNaN(price) || price <= 0) errors.push('A valid price is required.');
 
-            // Validate Flight Code
-            if (!flightCode) {
-                errors.push('Flight code is required.');
-            } else if (!/^[A-Z0-9]{2,6}$/.test(flightCode)) {
-                errors.push('Flight code should be 2-6 uppercase letters and/or numbers (e.g., AA123, BA456).');
-            }
+        if (imageFile) {
+            const allowed = ['image/jpeg','image/jpg','image/png','image/gif','image/webp'];
+            if (!allowed.includes(imageFile.type))
+                errors.push('Please select a valid image (JPEG, PNG, GIF, WEBP).');
+            if (imageFile.size > 5 * 1024 * 1024)
+                errors.push('Image must be under 5MB.');
+        }
 
-            // Validate Departure
-            if (!departure) {
-                errors.push('Departure location is required.');
-            } else if (!/^[a-zA-Z\s]+$/.test(departure)) {
-                errors.push('Departure should contain only letters and spaces.');
-            } else if (departure.length < 2 || departure.length > 50) {
-                errors.push('Departure should be between 2 and 50 characters.');
-            }
-
-            // Validate Arrival
-            if (!arrival) {
-                errors.push('Arrival location is required.');
-            } else if (!/^[a-zA-Z\s]+$/.test(arrival)) {
-                errors.push('Arrival should contain only letters and spaces.');
-            } else if (arrival.length < 2 || arrival.length > 50) {
-                errors.push('Arrival should be between 2 and 50 characters.');
-            }
-
-            // Validate Duration
-            if (!duration) {
-                errors.push('Duration is required.');
-            } else if (!/^(\d{1,2}h\s?\d{1,2}m|\d{1,2}m|\d{1,2}h)$/.test(duration)) {
-                errors.push('Duration should be in format like "2h 30m", "1h", or "45m".');
-            }
-
-            // Validate Price
-            if (!price || price < 10000) {
-                errors.push('Price is required and must be at least 10,000.');
-            } else if (price > 1000000) {
-                errors.push('Price should not exceed 1,000,000.');
-            }
-
-            // Validate Image (optional, but if selected, check type and size)
-            if (imageFile) {
-                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                if (!allowedTypes.includes(imageFile.type)) {
-                    errors.push('Please select a valid image file (JPEG, PNG, GIF).');
-                }
-                const maxSize = 5 * 1024 * 1024; // 5MB
-                if (imageFile.size > maxSize) {
-                    errors.push('Image file size should not exceed 5MB.');
-                }
-            }
-
-            // If errors, prevent submission and display them
-            if (errors.length > 0) {
-                event.preventDefault();
-                errorDiv.innerHTML = '<ul><li>' + errors.join('</li><li>') + '</li></ul>';
-                return false;
-            }
-
-            // If all good, allow submission
-            return true;
-
-        } catch (error) {
+        if (errors.length > 0) {
             event.preventDefault();
-            console.error('Validation error:', error);
-            document.getElementById('errorMessages').innerHTML = 'An unexpected error occurred during validation. Please try again.';
+            if (errorDiv) {
+                errorDiv.innerHTML = errors.map(e => `<div>⚠️ ${e}</div>`).join('');
+                errorDiv.style.display = 'block';
+            }
             return false;
         }
     });
