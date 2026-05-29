@@ -158,7 +158,7 @@ body {
     margin-bottom: 36px;
     gap: 16px;
 }
-.page-heading-left {}
+/* .page-heading-left {} */
 .page-heading-eyebrow {
     font-size: 11px;
     font-weight: 600;
