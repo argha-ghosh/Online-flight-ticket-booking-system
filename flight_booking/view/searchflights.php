@@ -563,7 +563,7 @@ $total_passengers = $adults + $children;
     }
 
     /* Price slider */
-    .price-wrap { }
+    
     .price-ends {
         display: flex; justify-content: space-between;
         margin-bottom: 12px;
