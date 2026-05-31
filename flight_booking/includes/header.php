@@ -30,22 +30,18 @@ if ($is_webuser && isset($_SESSION['email'])) {
         position: fixed;
         top: 0; left: 0; right: 0;
         z-index: 1000;
-
-        /* Glassmorphism */
-        background: rgba(15, 30, 60, 0.25);
-        backdrop-filter: blur(18px) saturate(160%);
-        -webkit-backdrop-filter: blur(18px) saturate(160%);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-
+        background: linear-gradient(135deg, #0f2444 0%, #1a3a6e 60%, #0f2444 100%);
+        border-bottom: 2px solid rgba(201, 168, 76, 0.35);
+        box-shadow: 0 4px 28px rgba(8, 23, 46, 0.45);
         padding: 0;
         transition: background 0.35s ease, box-shadow 0.35s ease;
     }
 
-    /* Scrolled state — slightly more opaque */
+    /* Scrolled state */
     header.scrolled {
-        background: rgba(5, 30, 90, 0.65);
-        box-shadow: 0 4px 32px rgba(0, 0, 0, 0.22);
+        background: linear-gradient(135deg, #08172e 0%, #142d52 60%, #08172e 100%);
+        box-shadow: 0 4px 36px rgba(8, 23, 46, 0.6);
+        border-bottom-color: rgba(201, 168, 76, 0.5);
     }
 
     .header-container {
@@ -105,6 +101,20 @@ if ($is_webuser && isset($_SESSION['email'])) {
     nav > a:hover {
         background: rgba(255,255,255,0.14);
         color: #fff;
+    }
+
+    /* Search Flights — gold accent pill */
+    nav > a[href*="searchflights"] {
+        background: rgba(201, 168, 76, 0.18);
+        border: 1px solid rgba(201, 168, 76, 0.4);
+        color: #e8c96a;
+        font-weight: 700;
+        padding: 7px 16px;
+    }
+    nav > a[href*="searchflights"]:hover {
+        background: rgba(201, 168, 76, 0.32);
+        border-color: rgba(201, 168, 76, 0.65);
+        color: #f0d87a;
     }
 
     /* ── AUTH BUTTONS (guest) ── */
@@ -267,7 +277,7 @@ if ($is_webuser && isset($_SESSION['email'])) {
             <a href="/flight_booking/view/searchflights.php">Search Flights</a>
 
             <?php if ($is_webuser): ?>
-                <a href="/flight_booking/view/myBookings.php">My Bookings</a>
+                <a href="/flight_booking/view/userhome.php">Dashboard</a>
                 <div class="nav-divider"></div>
 
                 <div class="dropdown">

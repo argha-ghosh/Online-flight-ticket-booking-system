@@ -5,593 +5,662 @@ include("../model/db_conn.php");
 $is_logged_in = isset($_SESSION['email']) && isset($_SESSION['role']) && $_SESSION['role'] === 'webuser';
 $user = null;
 $booking_count = 0;
+$confirmed = 0; $cancelled = 0; $spent = 0;
 
 if ($is_logged_in) {
     $email = $_SESSION['email'];
     $stmt = $conn->prepare("SELECT * FROM webusers WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
+    $user = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 
     if ($user) {
-        $cnt_stmt = $conn->prepare("SELECT COUNT(*) as cnt FROM bookings WHERE user_id = ?");
-        $cnt_stmt->bind_param("i", $user['id']);
-        $cnt_stmt->execute();
-        $cnt_row = $cnt_stmt->get_result()->fetch_assoc();
-        $booking_count = $cnt_row['cnt'];
-        $cnt_stmt->close();
+        $stats_stmt = $conn->prepare("
+            SELECT COUNT(*) as total,
+                   SUM(status='confirmed') as confirmed,
+                   SUM(status='cancelled') as cancelled,
+                   SUM(CASE WHEN status='confirmed' THEN total_price ELSE 0 END) as spent
+            FROM bookings WHERE user_id = ?
+        ");
+        $stats_stmt->bind_param("i", $user['id']);
+        $stats_stmt->execute();
+        $stats = $stats_stmt->get_result()->fetch_assoc();
+        $stats_stmt->close();
+        $booking_count = (int)$stats['total'];
+        $confirmed     = (int)$stats['confirmed'];
+        $cancelled     = (int)$stats['cancelled'];
+        $spent         = (float)$stats['spent'];
     }
-    $stmt->close();
 }
+
+$avatar_src = '';
+if ($user) {
+    $avatar_src = "https://ui-avatars.com/api/?name=" . urlencode($user['name']) . "&background=0b1f3a&color=d4a84b&size=80&bold=true";
+    if (!empty($user['image']) && file_exists(__DIR__ . "/uploads/" . $user['image'])) {
+        $avatar_src = "uploads/" . htmlspecialchars($user['image']);
+    }
+}
+
+include("../includes/header.php");
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoZayan | My Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary:      #1a6ff4;
-            --primary-dark: #0d4fc4;
-            --primary-glow: rgba(26,111,244,0.18);
-            --secondary:    #0a2d6e;
-            --accent:       #06c8a0;
-            --warn:         #f59e0b;
-            --danger:       #ef4444;
-            --dark:         #0d1f35;
-            --mid:          #3d5a7a;
-            --muted:        #7a95b0;
-            --border:       #dce8f5;
-            --surface:      #ffffff;
-            --bg:           #f0f4fb;
-            --sidebar-w:    260px;
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--dark);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            -webkit-font-smoothing: antialiased;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoZayan · My Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600;1,700&family=DM+Mono:wght@400;500;600&family=Mulish:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+/* ══════════════════════════════════════════════════
+   SHARED DESIGN SYSTEM — GoZayan User Portal
+══════════════════════════════════════════════════ */
+:root {
+    /* Core palette */
+    --navy:        #08172e;
+    --navy-2:      #0f2444;
+    --navy-3:      #172f56;
+    --navy-4:      #1e3d6e;
+    --gold:        #c9a84c;
+    --gold-lt:     #e0bc6a;
+    --gold-dk:     #a8893a;
+    --gold-tint:   rgba(201,168,76,.09);
+    --gold-glow:   rgba(201,168,76,.22);
+    --cream:       #f8f5f0;
+    --cream-2:     #f0ebe2;
+    --cream-3:     #e6dfd4;
+    --ink:         #0d1a28;
+    --ink-2:       #2e4057;
+    --ink-3:       #6b84a0;
+    --ink-4:       #9db3c8;
+    --surface:     #ffffff;
+    --surface-2:   #fdfcfa;
+    --green:       #0a8f6a;
+    --green-lt:    #12b585;
+    --green-bg:    #d0f5ea;
+    --red:         #c8293a;
+    --red-lt:      #e53e50;
+    --red-bg:      #fde8ea;
+    --amber:       #b05c10;
+    --amber-bg:    rgba(176,92,16,.1);
+    --border:      #e2d9cc;
+    --border-2:    #ede7de;
+    /* Shadows */
+    --sh-xs:  0 1px 3px rgba(8,23,46,.05);
+    --sh-sm:  0 2px 10px rgba(8,23,46,.07), 0 1px 3px rgba(8,23,46,.04);
+    --sh-md:  0 6px 24px rgba(8,23,46,.09), 0 2px 8px rgba(8,23,46,.05);
+    --sh-lg:  0 16px 48px rgba(8,23,46,.12), 0 4px 16px rgba(8,23,46,.06);
+    --sh-gold: 0 6px 24px rgba(201,168,76,.25);
+    /* Typography */
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans:  'Mulish', system-ui, sans-serif;
+    --mono:  'DM Mono', 'Courier New', monospace;
+    /* Radii */
+    --r-sm: 8px;
+    --r-md: 14px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+}
 
-        /* ══ LAYOUT ══ */
-        .dashboard { display: flex; flex: 1; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
-        /* ══ SIDEBAR — sticky within dashboard only ══ */
-        .sidebar {
-            width: var(--sidebar-w);
-            background: linear-gradient(180deg, var(--secondary) 0%, #0d1f35 100%);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 100;
-        }
-        .sidebar-brand {
-            padding: 28px 24px 20px;
-            font-size: 1.4rem;
-            font-weight: 900;
-            color: #fff;
-            letter-spacing: -0.5px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            text-decoration: none;
-        }
-        .sidebar-brand a { text-decoration: none; color: inherit; }
-        .sidebar-brand span { color: #60a5fa; }
-        .sidebar-profile {
-            padding: 24px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .profile-avatar {
-            width: 72px; height: 72px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid rgba(255,255,255,0.2);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-        }
-        .profile-avatar-placeholder {
-            width: 72px; height: 72px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.8rem;
-            border: 3px solid rgba(255,255,255,0.2);
-        }
-        .profile-name  { font-size: 0.95rem; font-weight: 700; color: #fff; text-align: center; }
-        .profile-email { font-size: 0.75rem; color: rgba(255,255,255,0.45); text-align: center; word-break: break-all; }
-        .sidebar-nav { padding: 16px 12px; flex: 1; }
-        .nav-label {
-            font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.3);
-            text-transform: uppercase; letter-spacing: 1.2px;
-            padding: 0 12px; margin: 16px 0 8px;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 12px;
-            padding: 11px 14px; border-radius: 10px;
-            text-decoration: none; color: rgba(255,255,255,0.65);
-            font-size: 0.88rem; font-weight: 500;
-            transition: all 0.2s; margin-bottom: 2px;
-        }
-        .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
-        .nav-item.active { background: rgba(26,111,244,0.25); color: #fff; font-weight: 600; }
-        .nav-item .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
-        .sidebar-footer { padding: 16px 12px; border-top: 1px solid rgba(255,255,255,0.08); }
-        .logout-btn {
-            display: flex; align-items: center; gap: 10px;
-            padding: 11px 14px; border-radius: 10px;
-            text-decoration: none; color: rgba(255,100,100,0.8);
-            font-size: 0.88rem; font-weight: 600;
-            transition: all 0.2s; width: 100%;
-        }
-        .logout-btn:hover { background: rgba(239,68,68,0.12); color: #fca5a5; }
+body {
+    font-family: var(--sans);
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding-top: 62px; /* fixed header height */
+}
 
-        /* ══ MAIN — offset by sidebar width ══ */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--cream-2); }
+::-webkit-scrollbar-thumb { background: var(--cream-3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
 
-        /* Topbar */
-        .topbar {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 32px;
-            display: flex; align-items: center;
-            justify-content: space-between; gap: 16px;
-            position: sticky; top: 0; z-index: 10;
-        }
-        .topbar-greeting { font-size: 1rem; font-weight: 700; color: var(--dark); }
-        .topbar-greeting span { color: var(--primary); }
-        .topbar-search {
-            display: flex; align-items: center; gap: 10px;
-            background: var(--bg); border: 1.5px solid var(--border);
-            border-radius: 50px; padding: 9px 20px;
-            flex: 1; max-width: 340px;
-            text-decoration: none; color: var(--muted);
-            font-size: 0.88rem; font-weight: 500; transition: all 0.2s;
-        }
-        .topbar-search:hover { border-color: var(--primary); color: var(--primary); background: rgba(26,111,244,0.04); }
+/* ── Animations ── */
+@keyframes riseIn   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes slideInL { from { opacity:0; transform:translateX(-16px); } to { opacity:1; transform:translateX(0); } }
 
-        /* Page content */
-        .page-content { padding: 32px; flex: 1; }
+/* ══════════════════════════════════════════════════
+   SUB-HEADER BANNER
+══════════════════════════════════════════════════ */
+.sub-header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%);
+    padding: 18px 40px;
+    display: flex; align-items: center; gap: 20px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    position: relative; overflow: hidden;
+}
+.sub-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 80% 50%, rgba(201,168,76,.08) 0%, transparent 60%);
+    pointer-events: none;
+}
+.sh-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: rgba(201,168,76,.15);
+    border: 1px solid rgba(201,168,76,.25);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold-lt); font-size: 1.15rem; flex-shrink: 0;
+}
+.sh-text h2 {
+    font-family: var(--serif); font-size: 1.15rem; font-weight: 700;
+    color: #fff; letter-spacing: -.01em; margin-bottom: 2px;
+}
+.sh-text p { font-size: .75rem; color: rgba(255,255,255,.42); font-weight: 500; }
+.sh-badge {
+    margin-left: auto;
+    font-family: var(--mono); font-size: .68rem; font-weight: 500;
+    color: var(--gold-lt); letter-spacing: .1em;
+    background: rgba(201,168,76,.12);
+    border: 1px solid rgba(201,168,76,.25);
+    padding: 6px 18px; border-radius: 30px;
+    white-space: nowrap;
+}
 
-        /* ══ STAT STRIP ══ */
-        .stat-strip {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 18px; margin-bottom: 32px;
-        }
-        .stat-tile {
-            background: var(--surface); border-radius: 16px;
-            padding: 22px 24px; border: 1px solid var(--border);
-            display: flex; align-items: center; gap: 18px;
-            box-shadow: 0 2px 12px rgba(13,31,53,0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .stat-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(13,31,53,0.09); }
-        .stat-tile-icon {
-            width: 52px; height: 52px; border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; flex-shrink: 0;
-        }
-        .icon-blue  { background: rgba(26,111,244,0.1); }
-        .icon-teal  { background: rgba(6,200,160,0.1); }
-        .icon-amber { background: rgba(245,158,11,0.1); }
-        .stat-tile-info .val {
-            font-size: 1.8rem; font-weight: 900; color: var(--dark);
-            letter-spacing: -1px; line-height: 1;
-        }
-        .stat-tile-info .lbl {
-            font-size: 0.78rem; color: var(--muted); font-weight: 600;
-            margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px;
-        }
+/* ══════════════════════════════════════════════════
+   PAGE LAYOUT
+══════════════════════════════════════════════════ */
+.page-wrap {
+    max-width: 1340px; margin: 0 auto;
+    padding: 28px 36px 100px;
+    display: grid;
+    grid-template-columns: 256px 1fr;
+    gap: 28px;
+    align-items: start;
+}
 
-        /* ══ TWO-COLUMN BODY ══ */
-        .body-grid {
-            display: grid; grid-template-columns: 1fr 320px;
-            gap: 24px; align-items: start;
-        }
+/* ══════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════ */
+.sidebar {
+    display: flex; flex-direction: column; gap: 12px;
+    position: sticky; top: 82px;
+    animation: slideInL .5s .05s cubic-bezier(0.16,1,.3,1) both;
+}
 
-        /* ══ PANELS ══ */
-        .panel {
-            background: var(--surface); border-radius: 18px;
-            border: 1px solid var(--border); overflow: hidden;
-            box-shadow: 0 2px 12px rgba(13,31,53,0.05);
-        }
-        .panel-head {
-            padding: 18px 22px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .panel-head h3 { font-size: 0.95rem; font-weight: 800; color: var(--dark); }
-        .panel-head a { font-size: 0.8rem; font-weight: 700; color: var(--primary); text-decoration: none; }
-        .panel-head a:hover { text-decoration: underline; }
+/* Profile card */
+.sb-profile {
+    background: linear-gradient(160deg, var(--navy-2) 0%, var(--navy-4) 100%);
+    border-radius: var(--r-lg);
+    padding: 24px 20px 20px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,.06);
+    box-shadow: var(--sh-md);
+    position: relative; overflow: hidden;
+}
+.sb-profile::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,.12) 0%, transparent 65%);
+    pointer-events: none;
+}
+.sb-av-wrap {
+    position: relative; display: inline-block; margin-bottom: 14px;
+}
+.sb-av {
+    width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+    border: 3px solid rgba(201,168,76,.5);
+    box-shadow: 0 0 0 5px rgba(201,168,76,.1), var(--sh-md);
+}
+.sb-online {
+    position: absolute; bottom: 3px; right: 3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--green-lt); border: 2.5px solid var(--navy-2);
+    box-shadow: 0 0 6px rgba(18,181,133,.5);
+}
+.sb-name  { font-size: .95rem; font-weight: 800; color: #fff; margin-bottom: 3px; letter-spacing: -.01em; }
+.sb-email { font-size: .68rem; color: rgba(255,255,255,.38); word-break: break-all; line-height: 1.4; }
+.sb-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 12px;
+    font-family: var(--mono); font-size: .6rem; font-weight: 500;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold-lt);
+    background: rgba(201,168,76,.12);
+    border: 1px solid rgba(201,168,76,.22);
+    padding: 4px 14px; border-radius: 20px;
+}
 
-        /* Ticket rows */
-        .booking-ticket {
-            display: flex; align-items: center; gap: 16px;
-            padding: 16px 22px; border-bottom: 1px solid #f0f5fb;
-            transition: background 0.15s;
-        }
-        .booking-ticket:last-child { border-bottom: none; }
-        .booking-ticket:hover { background: #f8fbff; }
-        .ticket-icon {
-            width: 42px; height: 42px; border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; flex-shrink: 0;
-            box-shadow: 0 3px 10px var(--primary-glow);
-        }
-        .ticket-info { flex: 1; min-width: 0; }
-        .ticket-route {
-            font-size: 0.92rem; font-weight: 700; color: var(--dark);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .ticket-meta { font-size: 0.76rem; color: var(--muted); margin-top: 3px; }
-        .ticket-right { text-align: right; flex-shrink: 0; }
-        .ticket-price { font-size: 0.95rem; font-weight: 800; color: var(--primary); }
-        .ticket-date  { font-size: 0.74rem; color: var(--muted); margin-top: 3px; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
-        .badge-confirmed { background: rgba(6,200,160,0.12); color: #047857; border: 1px solid rgba(6,200,160,0.25); }
-        .badge-cancelled { background: rgba(239,68,68,0.08); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
-        .badge-pending   { background: rgba(245,158,11,0.1); color: #b45309; border: 1px solid rgba(245,158,11,0.25); }
-        .no-data { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 0.88rem; }
+/* Stat tiles */
+.sb-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sb-stat {
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-md);
+    padding: 13px 10px; text-align: center;
+    box-shadow: var(--sh-xs);
+    transition: transform .2s, box-shadow .2s;
+}
+.sb-stat:hover { transform: translateY(-2px); box-shadow: var(--sh-sm); }
+.sb-stat .n {
+    font-family: var(--mono); font-size: 1.2rem; font-weight: 600;
+    display: block; font-variant-numeric: tabular-nums; line-height: 1;
+    color: var(--navy);
+}
+.sb-stat .l {
+    font-size: .6rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--ink-3); display: block; margin-top: 4px;
+}
+.sb-stat.c-gold  .n { color: var(--gold-dk); }
+.sb-stat.c-green .n { color: var(--green); }
+.sb-stat.c-red   .n { color: var(--red); }
 
-        /* Quick links */
-        .quick-links { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
-        .quick-link {
-            display: flex; align-items: center; gap: 14px;
-            padding: 14px 16px; border-radius: 12px;
-            text-decoration: none; color: var(--dark);
-            border: 1px solid var(--border); background: var(--surface);
-            transition: all 0.2s; font-size: 0.88rem; font-weight: 600;
-        }
-        .quick-link:hover { border-color: var(--primary); background: rgba(26,111,244,0.04); transform: translateX(4px); }
-        .quick-link .ql-icon {
-            width: 38px; height: 38px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; flex-shrink: 0;
-        }
-        .quick-link .ql-arrow { margin-left: auto; color: var(--muted); font-size: 0.8rem; }
-        .quick-link:hover .ql-arrow { color: var(--primary); }
+/* Nav */
+.sb-nav{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-sm)}
+.sb-nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:.85rem;font-weight:600;color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--border-2);transition:background .18s,color .18s,border-color .18s;position:relative;letter-spacing:.01em}
+.sb-nav-item:last-child{border-bottom:none}
+.sb-nav-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .18s;border-radius:0 2px 2px 0}
+.sb-nav-item:hover{background:var(--cream-2);color:var(--navy)}
+.sb-nav-item:hover::before,.sb-nav-item.active::before{transform:scaleX(1)}
+.sb-nav-item.active{background:rgba(201,168,76,.1);color:var(--navy);font-weight:800;border-left:3px solid var(--gold)}
+.sb-nav-item i{width:18px;text-align:center;font-size:.84rem;color:var(--ink-3);flex-shrink:0;transition:color .18s}
+.sb-nav-item:hover i,.sb-nav-item.active i{color:var(--gold)}
+/* Search Flights — gold accent row */
+.sb-nav-item.search-link{background:rgba(201,168,76,.07);color:var(--gold-dk);font-weight:700;border-left:3px solid rgba(201,168,76,.5)}
+.sb-nav-item.search-link i{color:var(--gold-dk)}
+.sb-nav-item.search-link:hover{background:rgba(201,168,76,.15);color:var(--navy);border-left-color:var(--gold)}
 
-        /* Search CTA */
-        .search-cta {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
-            border-radius: 18px; padding: 28px 22px; color: #fff;
-            text-align: center; margin-bottom: 18px;
-            position: relative; overflow: hidden;
-        }
-        .search-cta::before { content: '✈'; position: absolute; right: -10px; top: -10px; font-size: 6rem; opacity: 0.07; }
-        .search-cta h4 { font-size: 1.05rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.3px; }
-        .search-cta p  { font-size: 0.8rem; opacity: 0.75; margin-bottom: 18px; line-height: 1.5; }
-        .search-cta a {
-            display: inline-block; background: #fff; color: var(--primary);
-            padding: 10px 24px; border-radius: 50px; font-weight: 700;
-            font-size: 0.88rem; text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.15); transition: all 0.2s;
-        }
-        .search-cta a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+/* Logout */
+.sb-logout {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    padding: 12px; background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md); color: var(--ink-3);
+    font-family: var(--sans); font-size: .82rem; font-weight: 700;
+    text-decoration: none; transition: all .2s; letter-spacing: .02em;
+}
+.sb-logout:hover { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+.sb-logout i { font-size: .82rem; }
+</style>
+<style>
+/* ══════════════════════════════════════════════════
+   MAIN COLUMN — USERHOME
+══════════════════════════════════════════════════ */
+.main-col { min-width: 0; animation: riseIn .5s .1s cubic-bezier(0.16,1,.3,1) both; }
 
-        /* ══ GUEST LAYOUT ══ */
-        .guest-page { min-height: 100vh; display: flex; flex-direction: column; }
-        .guest-split { flex: 1; display: grid; grid-template-columns: 1fr 1fr; }
-        .guest-left {
-            background: linear-gradient(160deg, var(--secondary) 0%, var(--primary) 50%, var(--accent) 100%);
-            display: flex; flex-direction: column; justify-content: center;
-            padding: 60px 56px; color: #fff; position: relative; overflow: hidden;
-        }
-        .guest-left::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1748&auto=format&fit=crop') center/cover;
-            opacity: 0.15;
-        }
-        .guest-left-content { position: relative; z-index: 1; }
-        .guest-left h1 { font-size: 2.8rem; font-weight: 900; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 18px; }
-        .guest-left p  { font-size: 1rem; opacity: 0.8; line-height: 1.65; max-width: 380px; }
-        .guest-right {
-            display: flex; align-items: center; justify-content: center;
-            padding: 60px 56px; background: var(--surface);
-        }
-        .guest-right-inner { max-width: 360px; width: 100%; }
-        .guest-right h2 { font-size: 1.7rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; letter-spacing: -0.5px; }
-        .guest-right p  { color: var(--muted); font-size: 0.9rem; margin-bottom: 32px; line-height: 1.6; }
-        .btn-solid {
-            display: block; width: 100%; padding: 14px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: #fff; border-radius: 12px; text-decoration: none;
-            font-weight: 700; font-size: 0.95rem; text-align: center;
-            box-shadow: 0 5px 18px var(--primary-glow); transition: all 0.22s; margin-bottom: 12px;
-        }
-        .btn-solid:hover { transform: translateY(-2px); filter: brightness(1.06); }
-        .btn-ghost {
-            display: block; width: 100%; padding: 13px;
-            border: 2px solid var(--border); color: var(--mid);
-            border-radius: 12px; text-decoration: none;
-            font-weight: 700; font-size: 0.95rem; text-align: center; transition: all 0.22s;
-        }
-        .btn-ghost:hover { border-color: var(--primary); color: var(--primary); background: rgba(26,111,244,0.04); }
-        .divider {
-            display: flex; align-items: center; gap: 12px;
-            color: var(--muted); font-size: 0.8rem; margin: 14px 0;
-        }
-        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+/* Greeting bar */
+.greeting-bar {
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-lg);
+    padding: 20px 26px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin-bottom: 22px;
+    box-shadow: var(--sh-sm);
+    position: relative; overflow: hidden;
+}
+.greeting-bar::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--navy) 0%, var(--gold) 100%);
+}
+.greeting-text { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; color: var(--ink); letter-spacing: -.02em; }
+.greeting-text em { font-style: italic; color: var(--gold-dk); }
+.search-pill {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--cream); border: 1.5px solid var(--border);
+    border-radius: 50px; padding: 10px 22px;
+    text-decoration: none; color: var(--ink-3);
+    font-size: .86rem; font-weight: 600; transition: all .22s;
+    white-space: nowrap;
+}
+.search-pill i { color: var(--gold); }
+.search-pill:hover { border-color: var(--gold); color: var(--gold-dk); background: var(--gold-tint); box-shadow: var(--sh-gold); }
 
-        /* ══ RESPONSIVE ══ */
-        @media (max-width: 1024px) { .body-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .stat-strip { grid-template-columns: 1fr 1fr; }
-            .page-content { padding: 20px 16px; }
-            .topbar { padding: 14px 16px; }
-            .guest-split { grid-template-columns: 1fr; }
-            .guest-left { display: none; }
-            .guest-right { padding: 40px 24px; }
-        }
-        @media (max-width: 480px) { .stat-strip { grid-template-columns: 1fr; } }
+/* Stat strip */
+.stat-strip { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 26px; }
+.stat-tile {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    padding: 22px 24px;
+    border: 1px solid var(--border-2);
+    display: flex; align-items: center; gap: 18px;
+    box-shadow: var(--sh-sm);
+    transition: transform .22s, box-shadow .22s;
+    position: relative; overflow: hidden;
+}
+.stat-tile::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+    opacity: 0; transition: opacity .22s;
+}
+.stat-tile:hover { transform: translateY(-3px); box-shadow: var(--sh-md); }
+.stat-tile:hover::after { opacity: 1; }
+.stat-tile.t-navy::after  { background: var(--navy); }
+.stat-tile.t-green::after { background: var(--green); }
+.stat-tile.t-gold::after  { background: var(--gold); }
+.st-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem; flex-shrink: 0;
+}
+.st-icon.i-navy  { background: rgba(8,23,46,.07);  color: var(--navy-3); }
+.st-icon.i-green { background: rgba(10,143,106,.08); color: var(--green); }
+.st-icon.i-gold  { background: var(--gold-tint);    color: var(--gold-dk); }
+.st-info .v { font-family: var(--mono); font-size: 1.8rem; font-weight: 600; color: var(--ink); letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.st-info .l { font-size: .7rem; color: var(--ink-3); font-weight: 700; margin-top: 5px; text-transform: uppercase; letter-spacing: .06em; }
 
-        /* ══ FOOTER STYLING ══ */
-        /* footer {
-            background: linear-gradient(135deg, var(--secondary) 0%, #0d1f35 100%);
-            color: rgba(255, 255, 255, 0.75);
-            padding: 36px 32px;
-            margin-top: auto;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            text-align: center;
-        }
-        .footer-container p {
-            font-size: 0.88rem;
-            line-height: 1.6;
-        }
-        .footer-container a {
-            color: #60a5fa;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-        .footer-container a:hover {
-            color: #93c5fd;
-            text-decoration: underline;
-        } 
-        .social-icons {
-            display: flex;
-            justify-content: center;
-            gap: 14px;
-        }
-        .social-icons a {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-            font-size: 18px;
-            transition: all 0.25s ease;
-        }
-        .social-icons a:hover {
-            background: #1a6ff4;
-            transform: translateY(-2px);
-        }
-        .contact-info {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.55);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 14px;
-            width: 100%;
-            max-width: 600px;
-        }
-        .contact-info span {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        } */
-    </style>
+/* Body grid */
+.body-grid { display: grid; grid-template-columns: 1fr 308px; gap: 22px; align-items: start; }
+
+/* Panel */
+.panel {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-2);
+    overflow: hidden;
+    box-shadow: var(--sh-sm);
+}
+.panel-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border-2);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface-2);
+}
+.panel-head h3 {
+    font-family: var(--serif); font-size: 1.05rem; font-weight: 700;
+    color: var(--ink); display: flex; align-items: center; gap: 8px;
+}
+.ph-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+.panel-head a {
+    font-family: var(--mono); font-size: .7rem; font-weight: 500;
+    color: var(--gold-dk); text-decoration: none; letter-spacing: .05em;
+    transition: color .18s;
+}
+.panel-head a:hover { color: var(--navy); }
+
+/* Booking ticket rows */
+.bk-ticket {
+    display: flex; align-items: center; gap: 16px;
+    padding: 15px 22px;
+    border-bottom: 1px solid var(--cream-2);
+    transition: background .15s;
+}
+.bk-ticket:last-child { border-bottom: none; }
+.bk-ticket:hover { background: var(--cream); }
+.bk-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--navy-2) 0%, var(--navy-4) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .95rem; color: var(--gold-lt); flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(8,23,46,.18);
+}
+.bk-info { flex: 1; min-width: 0; }
+.bk-route { font-size: .9rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-meta  { font-size: .73rem; color: var(--ink-3); margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bk-right { text-align: right; flex-shrink: 0; }
+.bk-price { font-family: var(--mono); font-size: .95rem; font-weight: 600; color: var(--navy); }
+.bk-date  { font-size: .7rem; color: var(--ink-3); margin-top: 3px; }
+
+/* Status badges */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: .67rem; font-weight: 700; }
+.badge-confirmed { background: var(--green-bg); color: var(--green); border: 1px solid rgba(10,143,106,.2); }
+.badge-cancelled { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(200,41,58,.18); }
+.badge-pending   { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(176,92,16,.2); }
+
+.no-data { text-align: center; padding: 44px 20px; color: var(--ink-3); font-size: .88rem; }
+.no-data i { font-size: 2.2rem; color: var(--border); display: block; margin-bottom: 12px; }
+.no-data a { color: var(--gold-dk); font-weight: 700; text-decoration: none; }
+
+/* Search CTA */
+.search-cta {
+    background: linear-gradient(145deg, var(--navy) 0%, var(--navy-3) 100%);
+    border-radius: var(--r-lg);
+    padding: 28px 22px; color: #fff; text-align: center;
+    margin-bottom: 16px; position: relative; overflow: hidden;
+    box-shadow: var(--sh-md);
+}
+.search-cta::before {
+    content: '✈';
+    position: absolute; right: -8px; top: -12px;
+    font-size: 7rem; opacity: .04; line-height: 1;
+    transform: rotate(12deg);
+}
+.search-cta::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--gold-dk), var(--gold-lt));
+}
+.search-cta h4 { font-family: var(--serif); font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -.01em; }
+.search-cta p  { font-size: .8rem; opacity: .6; margin-bottom: 20px; line-height: 1.55; }
+.search-cta a {
+    display: inline-block; background: var(--gold); color: var(--navy);
+    padding: 11px 28px; border-radius: 50px; font-weight: 800;
+    font-size: .88rem; text-decoration: none;
+    box-shadow: var(--sh-gold); transition: all .22s; font-family: var(--sans);
+    letter-spacing: .01em;
+}
+.search-cta a:hover { transform: translateY(-2px); background: var(--gold-lt); box-shadow: 0 8px 28px rgba(201,168,76,.35); }
+
+/* Quick links */
+.quick-links { display: flex; flex-direction: column; gap: 6px; padding: 14px; }
+.quick-link {
+    display: flex; align-items: center; gap: 13px;
+    padding: 12px 15px; border-radius: var(--r-md);
+    text-decoration: none; color: var(--ink);
+    border: 1px solid var(--border-2); background: var(--surface);
+    transition: all .2s; font-size: .86rem; font-weight: 600;
+}
+.quick-link:hover { border-color: var(--gold); background: var(--gold-tint); transform: translateX(4px); box-shadow: var(--sh-xs); }
+.ql-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
+.ql-arrow { margin-left: auto; color: var(--ink-4); font-size: .75rem; transition: color .2s, transform .2s; }
+.quick-link:hover .ql-arrow { color: var(--gold-dk); transform: translateX(3px); }
+
+/* Responsive */
+@media (max-width: 1100px) { .page-wrap { grid-template-columns: 1fr; } .sidebar { position: static; } .body-grid { grid-template-columns: 1fr; } }
+@media (max-width: 780px)  { .page-wrap { padding: 18px 16px 80px; } .stat-strip { grid-template-columns: 1fr 1fr; } .greeting-bar { flex-direction: column; align-items: flex-start; } .sub-header { padding: 14px 20px; } }
+@media (max-width: 480px)  { .stat-strip { grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
 
-
 <?php if ($is_logged_in && $user): ?>
 
-<div class="dashboard">
+<div class="sub-header">
+    <div class="sh-icon"><i class="fas fa-house"></i></div>
+    <div class="sh-text">
+        <h2>My Dashboard</h2>
+        <p>Welcome back — here's your travel overview</p>
+    </div>
+    <div class="sh-badge">✈ GoZayan Traveller</div>
+</div>
+
+<div class="page-wrap">
 
     <!-- ══ SIDEBAR ══ -->
     <aside class="sidebar">
-        <div class="sidebar-brand"><a href="home.php">Go<span>Zayan</span></a></div>
-
-        <div class="sidebar-profile">
-            <?php if (!empty($user['image'])): ?>
-                <img class="profile-avatar" src="uploads/<?= htmlspecialchars($user['image']) ?>" alt="Avatar">
-            <?php else: ?>
-                <div class="profile-avatar-placeholder">✈</div>
-            <?php endif; ?>
-            <div class="profile-name"><?= htmlspecialchars($user['name']) ?></div>
-            <div class="profile-email"><?= htmlspecialchars($user['email']) ?></div>
+        <div class="sb-profile">
+            <div class="sb-av-wrap">
+                <img class="sb-av" src="<?= $avatar_src ?>" alt="<?= htmlspecialchars($user['name']) ?>">
+                <div class="sb-online"></div>
+            </div>
+            <div class="sb-name"><?= htmlspecialchars($user['name']) ?></div>
+            <div class="sb-email"><?= htmlspecialchars($user['email']) ?></div>
+            <div class="sb-badge"><i class="fas fa-star" style="font-size:.55rem"></i> GoZayan Traveller</div>
         </div>
 
-        <nav class="sidebar-nav">
-            <div class="nav-label">Menu</div>
-            <a href="userhome.php" class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
-            <a href="searchflights.php" class="nav-item"><span class="nav-icon">🔍</span> Search Flights</a>
-            <a href="myBookings.php" class="nav-item"><span class="nav-icon">🎫</span> My Bookings</a>
-            <div class="nav-label">Account</div>
-            <a href="passengerProfile.php" class="nav-item"><span class="nav-icon">👤</span> My Profile</a>
-            <a href="changePassword.php" class="nav-item"><span class="nav-icon">🔒</span> Change Password</a>
+        <div class="sb-stats">
+            <div class="sb-stat">
+                <span class="n"><?= $booking_count ?></span>
+                <span class="l">Bookings</span>
+            </div>
+            <div class="sb-stat c-green">
+                <span class="n"><?= $confirmed ?></span>
+                <span class="l">Confirmed</span>
+            </div>
+            <div class="sb-stat c-gold" style="grid-column:1/-1">
+                <span class="n">$<?= number_format($spent, 0) ?></span>
+                <span class="l">Total Spent</span>
+            </div>
+        </div>
+
+        <nav class="sb-nav">
+            <a href="userhome.php"       class="sb-nav-item active"><i class="fas fa-house"></i> Dashboard</a>
+            <!-- <a href="searchflights.php"  class="sb-nav-item search-link"><i class="fas fa-magnifying-glass"></i> Search Flights</a>
+            <a href="myBookings.php"     class="sb-nav-item"><i class="fas fa-ticket"></i> My Bookings</a>
+            <a href="passengerProfile.php" class="sb-nav-item"><i class="fas fa-user"></i> My Profile</a>
+            <a href="changePassword.php" class="sb-nav-item"><i class="fas fa-lock"></i> Change Password</a> -->
         </nav>
 
-        <div class="sidebar-footer">
-            <a href="logout.php" class="logout-btn"><span>🚪</span> Sign Out</a>
-        </div>
+        <a href="/flight_booking/logout.php" class="sb-logout">
+            <i class="fas fa-right-from-bracket"></i> Sign Out
+        </a>
     </aside>
 
     <!-- ══ MAIN ══ -->
-    <div class="main">
+    <div class="main-col">
 
-        <div class="topbar">
-            <div class="topbar-greeting">Good day, <span><?= htmlspecialchars(explode(' ', $user['name'])[0]) ?></span> ✈️</div>
-            <a href="searchflights.php" class="topbar-search">🔍 &nbsp;Search for a flight...</a>
+        <div class="greeting-bar">
+            <div class="greeting-text">Good day, <em><?= htmlspecialchars(explode(' ', $user['name'])[0]) ?></em> ✈</div>
+            <a href="searchflights.php" class="search-pill">
+                <i class="fas fa-magnifying-glass"></i> Search for a flight...
+            </a>
         </div>
 
-        <div class="page-content">
-
-            <!-- Stat strip -->
-            <div class="stat-strip">
-                <div class="stat-tile">
-                    <div class="stat-tile-icon icon-blue">🎫</div>
-                    <div class="stat-tile-info">
-                        <div class="val"><?= $booking_count ?></div>
-                        <div class="lbl">Total Bookings</div>
-                    </div>
-                </div>
-                <div class="stat-tile">
-                    <div class="stat-tile-icon icon-teal">✈️</div>
-                    <div class="stat-tile-info">
-                        <div class="val">BD</div>
-                        <div class="lbl">GoZayan Traveller</div>
-                    </div>
-                </div>
-                <div class="stat-tile">
-                    <div class="stat-tile-icon icon-amber">🌏</div>
-                    <div class="stat-tile-info">
-                        <div class="val">∞</div>
-                        <div class="lbl">Destinations</div>
-                    </div>
+        <div class="stat-strip">
+            <div class="stat-tile t-navy">
+                <div class="st-icon i-navy"><i class="fas fa-ticket"></i></div>
+                <div class="st-info">
+                    <div class="v"><?= $booking_count ?></div>
+                    <div class="l">Total Bookings</div>
                 </div>
             </div>
+            <div class="stat-tile t-green">
+                <div class="st-icon i-green"><i class="fas fa-circle-check"></i></div>
+                <div class="st-info">
+                    <div class="v"><?= $confirmed ?></div>
+                    <div class="l">Confirmed</div>
+                </div>
+            </div>
+            <div class="stat-tile t-gold">
+                <div class="st-icon i-gold"><i class="fas fa-coins"></i></div>
+                <div class="st-info">
+                    <div class="v">$<?= number_format($spent, 0) ?></div>
+                    <div class="l">Total Spent</div>
+                </div>
+            </div>
+        </div>
 
-            <!-- Body grid -->
-            <div class="body-grid">
+        <div class="body-grid">
+            <div class="panel">
+                <div class="panel-head">
+                    <h3><span class="ph-dot"></span> Recent Bookings</h3>
+                    <a href="myBookings.php">View all →</a>
+                </div>
+                <?php if ($booking_count > 0):
+                    $rs = $conn->prepare("SELECT b.*, f.flight_name, f.departure, f.arrival, f.flight_code FROM bookings b JOIN flights f ON b.flight_id = f.id WHERE b.user_id = ? ORDER BY b.booking_date DESC LIMIT 6");
+                    $rs->bind_param("i", $user['id']); $rs->execute();
+                    $rb = $rs->get_result();
+                    while ($b = $rb->fetch_assoc()):
+                ?>
+                <div class="bk-ticket">
+                    <div class="bk-icon"><i class="fas fa-plane"></i></div>
+                    <div class="bk-info">
+                        <div class="bk-route"><?= htmlspecialchars($b['departure']) ?> → <?= htmlspecialchars($b['arrival']) ?></div>
+                        <div class="bk-meta">
+                            <?= htmlspecialchars($b['flight_name']) ?> · <?= htmlspecialchars($b['flight_code']) ?>
+                            <span class="badge badge-<?= htmlspecialchars($b['status']) ?>"><?= ucfirst($b['status']) ?></span>
+                        </div>
+                    </div>
+                    <div class="bk-right">
+                        <div class="bk-price">$<?= number_format($b['total_price'], 0) ?></div>
+                        <div class="bk-date"><?= date('d M Y', strtotime($b['booking_date'])) ?></div>
+                    </div>
+                </div>
+                <?php endwhile; ?>
+                <?php else: ?>
+                <div class="no-data">
+                    <i class="fas fa-ticket"></i>
+                    No bookings yet.<br>
+                    <a href="searchflights.php">Search flights →</a>
+                </div>
+                <?php endif; ?>
+            </div>
 
-                <!-- Recent bookings -->
+            <div>
+                <div class="search-cta">
+                    <h4>Ready for your next trip?</h4>
+                    <p>Find the best deals on flights across Bangladesh and beyond.</p>
+                    <a href="searchflights.php">Search Flights</a>
+                </div>
                 <div class="panel">
-                    <div class="panel-head">
-                        <h3>Recent Bookings</h3>
-                        <a href="myBookings.php">View all →</a>
-                    </div>
-                    <?php if ($booking_count > 0):
-                        $recent_stmt = $conn->prepare("
-                            SELECT b.*, f.flight_name, f.departure, f.arrival, f.flight_code
-                            FROM bookings b JOIN flights f ON b.flight_id = f.id
-                            WHERE b.user_id = ? ORDER BY b.booking_date DESC LIMIT 6
-                        ");
-                        $recent_stmt->bind_param("i", $user['id']);
-                        $recent_stmt->execute();
-                        $recent_bookings = $recent_stmt->get_result();
-                        while ($b = $recent_bookings->fetch_assoc()):
-                    ?>
-                    <div class="booking-ticket">
-                        <div class="ticket-icon">✈</div>
-                        <div class="ticket-info">
-                            <div class="ticket-route"><?= htmlspecialchars($b['departure']) ?> → <?= htmlspecialchars($b['arrival']) ?></div>
-                            <div class="ticket-meta">
-                                <?= htmlspecialchars($b['flight_name']) ?> · <?= htmlspecialchars($b['flight_code']) ?>
-                                &nbsp;<span class="badge badge-<?= htmlspecialchars($b['status']) ?>"><?= ucfirst($b['status']) ?></span>
-                            </div>
-                        </div>
-                        <div class="ticket-right">
-                            <div class="ticket-price">$<?= number_format($b['total_price'], 0) ?></div>
-                            <div class="ticket-date"><?= date('d M Y', strtotime($b['booking_date'])) ?></div>
-                        </div>
-                    </div>
-                    <?php endwhile; ?>
-                    <?php else: ?>
-                    <div class="no-data">
-                        🎫 No bookings yet.<br>
-                        <a href="searchflights.php" style="color:var(--primary);font-weight:700;text-decoration:none;margin-top:8px;display:inline-block;">Search flights →</a>
-                    </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- Right column -->
-                <div>
-                    <div class="search-cta">
-                        <h4>Ready for your next trip?</h4>
-                        <p>Find the best deals on flights across Bangladesh and beyond.</p>
-                        <a href="searchflights.php">Search Flights</a>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-head"><h3>Quick Links</h3></div>
-                        <div class="quick-links">
-                            <a href="searchflights.php" class="quick-link">
-                                <div class="ql-icon icon-blue">🔍</div> Search Flights <span class="ql-arrow">›</span>
-                            </a>
-                            <a href="myBookings.php" class="quick-link">
-                                <div class="ql-icon icon-teal">🎫</div> My Bookings <span class="ql-arrow">›</span>
-                            </a>
-                            <a href="passengerProfile.php" class="quick-link">
-                                <div class="ql-icon icon-amber">👤</div> Edit Profile <span class="ql-arrow">›</span>
-                            </a>
-                            <a href="changePassword.php" class="quick-link">
-                                <div class="ql-icon" style="background:rgba(239,68,68,0.1);">🔒</div> Change Password <span class="ql-arrow">›</span>
-                            </a>
-                        </div>
+                    <div class="panel-head"><h3><span class="ph-dot"></span> Quick Links</h3></div>
+                    <div class="quick-links">
+                        <a href="searchflights.php" class="quick-link">
+                            <div class="ql-icon i-navy" style="background:rgba(8,23,46,.07);color:var(--navy-3)"><i class="fas fa-magnifying-glass"></i></div>
+                            Search Flights <span class="ql-arrow"><i class="fas fa-chevron-right"></i></span>
+                        </a>
+                        <a href="myBookings.php" class="quick-link">
+                            <div class="ql-icon" style="background:rgba(10,143,106,.08);color:var(--green)"><i class="fas fa-ticket"></i></div>
+                            My Bookings <span class="ql-arrow"><i class="fas fa-chevron-right"></i></span>
+                        </a>
+                        <a href="passengerProfile.php" class="quick-link">
+                            <div class="ql-icon" style="background:var(--gold-tint);color:var(--gold-dk)"><i class="fas fa-user"></i></div>
+                            Edit Profile <span class="ql-arrow"><i class="fas fa-chevron-right"></i></span>
+                        </a>
+                        <a href="changePassword.php" class="quick-link">
+                            <div class="ql-icon" style="background:var(--red-bg);color:var(--red)"><i class="fas fa-lock"></i></div>
+                            Change Password <span class="ql-arrow"><i class="fas fa-chevron-right"></i></span>
+                        </a>
                     </div>
                 </div>
-
-            </div><!-- /body-grid -->
-        </div><!-- /page-content -->
-    </div><!-- /main -->
-</div><!-- /dashboard -->
-
-<?php else: ?>
-
-<!-- ══ GUEST: SPLIT SCREEN ══ -->
-<div class="guest-page">
-    <div class="guest-split">
-        <div class="guest-left">
-            <div class="guest-left-content">
-                <h1>Think Flights,<br>Think GoZayan</h1>
-                <p>Search and book flights across Bangladesh. Fast, simple, and reliable — your journey starts here.</p>
-            </div>
-        </div>
-        <div class="guest-right">
-            <div class="guest-right-inner">
-                <h2>Get Started</h2>
-                <p>Login to your account or create a new one to start booking flights.</p>
-                <a href="login.php" class="btn-solid">Login to your account</a>
-                <div class="divider">or</div>
-                <a href="register.php" class="btn-ghost">Create a free account</a>
-                <p style="margin-top:20px;text-align:center;">
-                    <a href="searchflights.php" style="color:var(--primary);font-weight:600;font-size:0.88rem;text-decoration:none;">
-                        Browse flights without logging in →
-                    </a>
-                </p>
             </div>
         </div>
     </div>
 </div>
 
+<?php else: ?>
+<style>
+.guest-wrap { min-height: calc(100vh - 62px); display: grid; grid-template-columns: 1fr 1fr; }
+.guest-left { background: linear-gradient(155deg, var(--navy) 0%, var(--navy-3) 100%); display: flex; flex-direction: column; justify-content: center; padding: 70px 60px; color: #fff; position: relative; overflow: hidden; }
+.guest-left::before { content: ''; position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1748&auto=format&fit=crop') center/cover; opacity: .12; }
+.guest-left::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--gold-dk), var(--gold-lt)); }
+.guest-left-inner { position: relative; z-index: 1; }
+.guest-left h1 { font-family: var(--serif); font-size: 3rem; font-weight: 700; line-height: 1.1; margin-bottom: 20px; letter-spacing: -.03em; }
+.guest-left h1 em { font-style: italic; color: var(--gold-lt); }
+.guest-left p { font-size: 1rem; opacity: .7; line-height: 1.7; max-width: 380px; }
+.guest-right { display: flex; align-items: center; justify-content: center; padding: 60px 56px; background: var(--surface); }
+.guest-right-inner { max-width: 360px; width: 100%; }
+.guest-right h2 { font-family: var(--serif); font-size: 1.9rem; font-weight: 700; color: var(--ink); margin-bottom: 10px; letter-spacing: -.02em; }
+.guest-right p { color: var(--ink-3); font-size: .9rem; margin-bottom: 32px; line-height: 1.6; }
+.g-btn-solid { display: block; width: 100%; padding: 14px; background: var(--navy); color: #fff; border-radius: var(--r-md); text-decoration: none; font-weight: 700; font-size: .95rem; text-align: center; box-shadow: var(--sh-md); transition: all .22s; margin-bottom: 12px; font-family: var(--sans); }
+.g-btn-solid:hover { transform: translateY(-2px); background: var(--navy-2); box-shadow: var(--sh-lg); }
+.g-btn-ghost { display: block; width: 100%; padding: 13px; border: 2px solid var(--border); color: var(--ink-2); border-radius: var(--r-md); text-decoration: none; font-weight: 700; font-size: .95rem; text-align: center; transition: all .22s; font-family: var(--sans); }
+.g-btn-ghost:hover { border-color: var(--gold); color: var(--gold-dk); background: var(--gold-tint); }
+.g-divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: .8rem; margin: 14px 0; }
+.g-divider::before,.g-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+@media (max-width: 768px) { .guest-wrap { grid-template-columns: 1fr; } .guest-left { display: none; } .guest-right { padding: 40px 24px; } }
+</style>
+<div class="guest-wrap">
+    <div class="guest-left">
+        <div class="guest-left-inner">
+            <h1>Think Flights,<br><em>Think GoZayan</em></h1>
+            <p>Search and book flights across Bangladesh. Fast, simple, and reliable — your journey starts here.</p>
+        </div>
+    </div>
+    <div class="guest-right">
+        <div class="guest-right-inner">
+            <h2>Get Started</h2>
+            <p>Login to your account or create a new one to start booking flights.</p>
+            <a href="login.php" class="g-btn-solid">Login to your account</a>
+            <div class="g-divider">or</div>
+            <a href="register.php" class="g-btn-ghost">Create a free account</a>
+            <p style="margin-top:20px;text-align:center;">
+                <a href="searchflights.php" style="color:var(--gold-dk);font-weight:600;font-size:.88rem;text-decoration:none;">Browse flights without logging in →</a>
+            </p>
+        </div>
+    </div>
+</div>
 <?php endif; ?>
-<?php include("../includes/footer.php"); ?>
 
+<?php include("../includes/footer.php"); ?>
 </body>
 </html>
