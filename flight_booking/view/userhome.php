@@ -418,7 +418,7 @@ if ($is_logged_in) {
     </style>
 </head>
 <body>
-<!-- <?php include("../includes/header.php"); ?> -->
+
 
 <?php if ($is_logged_in && $user): ?>
 

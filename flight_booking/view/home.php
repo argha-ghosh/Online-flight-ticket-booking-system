@@ -1,5 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+include("../includes/header.php");
 include("../model/db_conn.php");
 
 $total_flights  = $conn->query("SELECT COUNT(*) as c FROM flights WHERE seat > 0")->fetch_assoc()['c'] ?? 0;
@@ -45,6 +46,8 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
         .hero {
             position: relative;
             min-height: 100vh;
+            margin-top: -62px;
+            padding-top: 62px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -620,7 +623,6 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
     </style>
 </head>
 <body>
-<!-- <?php include("../includes/header.php"); ?> -->
 
 <!-- ══════════════════════════════════════
      HERO
@@ -646,9 +648,8 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
             </p>
             <div class="hero-actions">
                 <a href="searchflights.php" class="btn-primary">✈ Search Flights</a>
-                <?php if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'webuser'): ?>
+                <?php if (!isset($_SESSION['role'])): ?>
                     <a href="register.php" class="btn-ghost">Create Free Account</a>
-                    <a href="login.php" class="btn-ghost">Log In</a>
                 <?php else: ?>
                     <a href="userhome.php" class="btn-ghost">My Dashboard →</a>
                 <?php endif; ?>
@@ -673,7 +674,7 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
                 <button class="trip-tab" onclick="setTrip(this,'round-trip')">Round Trip</button>
             </div>
 
-            <form action="searchflights.php" method="POST">
+            <form action="passengerHome.php" method="POST">
                 <input type="hidden" name="trip_type" id="trip_type" value="one-way">
 
                 <!-- From / To -->
@@ -681,12 +682,12 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
                     <div class="sf">
                         <label>From</label>
                         <input type="text" name="from" placeholder="Departure city" required>
-                        <span class="field-icon"></span>
+                        <span class="field-icon">🛫</span>
                     </div>
                     <div class="sf">
                         <label>To</label>
                         <input type="text" name="to" placeholder="Destination city" required>
-                        <span class="field-icon"></span>
+                        <span class="field-icon">🛬</span>
                     </div>
                     <button type="button" class="swap-btn" onclick="swapCities()" title="Swap">⇄</button>
                 </div>

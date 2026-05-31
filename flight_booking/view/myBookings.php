@@ -310,8 +310,6 @@ while ($s = $stats_q->fetch_assoc()) {
         .bp-time-block span { font-size: 0.65rem; color: var(--mid); font-weight: 600; text-transform: uppercase; }
         .bp-time-block small { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
         .bp-time-sep { color: var(--primary); font-weight: 700; font-size: 0.9rem; }
-            font-weight: 500;
-        }
 
         /* Divider notch */
         .bp-notch {

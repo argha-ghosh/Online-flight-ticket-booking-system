@@ -120,6 +120,55 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
         @media screen and (max-width: 768px) {
             nav > a { display: none; }
         }
+        /* Notification Bell */
+        .notif-bell { position: relative; cursor: pointer; margin-right: 20px; }
+        .notif-bell-icon {
+            font-size: 1.3rem; color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px;
+            transition: color 0.2s;
+        }
+        .notif-bell-icon:hover { color: #ffd700; }
+        .notif-badge {
+            position: absolute; top: -6px; right: -8px;
+            background: #ef4444; color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid #0d1b3e;
+        }
+        .notif-dropdown {
+            position: absolute; top: 100%; right: 0;
+            background: #fff; border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            min-width: 320px; max-height: 400px; overflow-y: auto;
+            display: none; z-index: 1000;
+            border: 1px solid #e2e8f0;
+        }
+        .notif-dropdown.show { display: block; }
+        .notif-header {
+            padding: 12px 16px; border-bottom: 1px solid #e2e8f0;
+            font-weight: 700; color: #0d1b3e; font-size: 0.9rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .notif-header button {
+            background: none; border: none; color: #0b72e6; cursor: pointer;
+            font-size: 0.75rem; font-weight: 700;
+        }
+        .notif-list { padding: 0; }
+        .notif-item {
+            padding: 12px 16px; border-bottom: 1px solid #f1f5f9;
+            cursor: pointer; transition: background 0.2s;
+            font-size: 0.85rem; line-height: 1.4;
+        }
+        .notif-item:hover { background: #f8fafc; }
+        .notif-item .notif-msg { color: #1e293b; }
+        .notif-item .notif-time { color: #94a3b8; font-size: 0.75rem; margin-top: 4px; }
+        .notif-empty {
+            padding: 24px 16px; text-align: center;
+            color: #94a3b8; font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -130,6 +179,21 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
             <a href="/flight_booking/view/managerdemo.php">Manage Flights</a>
             <a href="/flight_booking/view/manageSeatupdatePrice.php">Seats &amp; Prices</a>
             <!-- <a href="/flight_booking/view/passengerHome.php">Passenger Search</a> -->
+
+            <!-- Notification Bell -->
+            <div class="notif-bell" onclick="toggleNotifDropdown(event)">
+                <div class="notif-bell-icon">🔔</div>
+                <div class="notif-badge" id="notifBadge" style="display: none;"><span id="notifCount">0</span></div>
+                <div class="notif-dropdown" id="notifDropdown">
+                    <div class="notif-header">
+                        Notifications
+                        <button onclick="markAllNotifRead()">Clear All</button>
+                    </div>
+                    <div class="notif-list" id="notifList">
+                        <div class="notif-empty">Loading...</div>
+                    </div>
+                </div>
+            </div>
 
             <div class="dropdown">
                 <div class="mgr-trigger" onclick="toggleDropdown()">
@@ -162,9 +226,71 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
 function toggleDropdown() {
     document.getElementById('mgrDropdown')?.classList.toggle('show');
 }
+
+// Notification functions
+function toggleNotifDropdown(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('notifDropdown');
+    dropdown?.classList.toggle('show');
+    if (dropdown?.classList.contains('show')) {
+        fetchNotifications();
+    }
+}
+
+function fetchNotifications() {
+    fetch('/flight_booking/view/notifications.php?action=get_unread')
+        .then(r => r.json())
+        .then(data => {
+            const list = document.getElementById('notifList');
+            const badge = document.getElementById('notifBadge');
+            const count = document.getElementById('notifCount');
+            
+            if (data.count > 0) {
+                badge.style.display = 'flex';
+                count.textContent = data.count;
+                let html = '';
+                data.notifications.forEach(n => {
+                    const date = new Date(n.created_at);
+                    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    html += `<div class="notif-item" onclick="markNotifRead(${n.id})">
+                        <div class="notif-msg">${n.message}</div>
+                        <div class="notif-time">${time}</div>
+                    </div>`;
+                });
+                list.innerHTML = html;
+            } else {
+                badge.style.display = 'none';
+                list.innerHTML = '<div class="notif-empty">No new notifications</div>';
+            }
+        })
+        .catch(e => console.error('Error fetching notifications:', e));
+}
+
+function markNotifRead(notifId) {
+    fetch(`/flight_booking/view/notifications.php?action=mark_read&notif_id=${notifId}`)
+        .then(() => fetchNotifications())
+        .catch(e => console.error('Error marking notification as read:', e));
+}
+
+function markAllNotifRead() {
+    fetch('/flight_booking/view/notifications.php?action=mark_all_read')
+        .then(() => fetchNotifications())
+        .catch(e => console.error('Error marking all notifications as read:', e));
+}
+
 window.onclick = function(e) {
     if (!e.target.closest('.dropdown')) {
         document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
     }
+    if (!e.target.closest('.notif-bell')) {
+        document.getElementById('notifDropdown')?.classList.remove('show');
+    }
 }
+
+// Load notifications when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    fetchNotifications();
+    // Refresh every 30 seconds
+    setInterval(fetchNotifications, 30000);
+});
 </script>

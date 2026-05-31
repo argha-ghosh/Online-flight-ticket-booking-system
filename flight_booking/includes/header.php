@@ -1,11 +1,8 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    if (!headers_sent()) {
-        session_start();
-    }
+    if (!headers_sent()) session_start();
 }
 
-// Prevent caching of authenticated pages
 if (isset($_SESSION['role']) && !headers_sent()) {
     header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
     header("Pragma: no-cache");
@@ -13,7 +10,7 @@ if (isset($_SESSION['role']) && !headers_sent()) {
 }
 
 $is_webuser = isset($_SESSION['role']) && $_SESSION['role'] === 'webuser';
-$user_name = '';
+$user_name  = '';
 $user_image = '';
 
 if ($is_webuser && isset($_SESSION['email'])) {
@@ -28,211 +25,288 @@ if ($is_webuser && isset($_SESSION['email'])) {
 }
 ?>
 <style>
-    @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css");
-
+    /* ── HEADER ─────────────────────────────────────── */
     header {
-        position: relative;
-        z-index: 100;
-        background: linear-gradient(135deg, #0b72e6, #0556b3);
-        padding: 16px 0;
-        box-shadow: 0 10px 30px rgba(3, 55, 138, 0.18);
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 1000;
+
+        /* Glassmorphism */
+        background: rgba(15, 30, 60, 0.25);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+
+        padding: 0;
+        transition: background 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    /* Scrolled state — slightly more opaque */
+    header.scrolled {
+        background: rgba(5, 30, 90, 0.65);
+        box-shadow: 0 4px 32px rgba(0, 0, 0, 0.22);
     }
 
     .header-container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 0 24px;
+        padding: 0 28px;
+        height: 62px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
+        gap: 20px;
     }
 
-    header h1 a {
-        color: white;
+    /* ── LOGO ── */
+    .header-logo {
+        display: flex;
+        align-items: center;
+        gap: 9px;
         text-decoration: none;
-        font-size: 1.8rem;
-        font-weight: 900;
-        letter-spacing: -0.5px;
+        flex-shrink: 0;
+    }
+    .header-logo .logo-icon {
+        width: 34px; height: 34px;
+        background: rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem;
+        backdrop-filter: blur(6px);
+        transition: background 0.2s;
+    }
+    .header-logo:hover .logo-icon { background: rgba(255,255,255,0.28); }
+    .header-logo .logo-text {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.4px;
     }
 
+    /* ── NAV ── */
     nav {
         display: flex;
         align-items: center;
-        gap: 18px;
-        flex-wrap: wrap;
+        gap: 4px;
     }
 
-    nav a {
-        color: white;
+    nav > a {
+        color: rgba(255,255,255,0.88);
         text-decoration: none;
-        font-weight: 600;
-        transition: color 0.25s ease;
-        font-size: 0.95rem;
+        font-size: 0.88rem;
+        font-weight: 500;
+        padding: 7px 14px;
+        border-radius: 8px;
+        transition: background 0.2s, color 0.2s;
+        white-space: nowrap;
+    }
+    nav > a:hover {
+        background: rgba(255,255,255,0.14);
+        color: #fff;
     }
 
-    nav a:hover {
-        color: #7dd3fc;
+    /* ── AUTH BUTTONS (guest) ── */
+    .btn-nav-login {
+        color: rgba(255,255,255,0.88) !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+        border-radius: 8px !important;
+        padding: 7px 16px !important;
+        font-weight: 600 !important;
+        transition: background 0.2s, border-color 0.2s, color 0.2s !important;
+    }
+    .btn-nav-login:hover {
+        background: rgba(255,255,255,0.14) !important;
+        border-color: rgba(255,255,255,0.55) !important;
+        color: #fff !important;
     }
 
+    .btn-nav-register {
+        background: rgba(255,255,255,0.95) !important;
+        color: #0b72e6 !important;
+        border-radius: 8px !important;
+        padding: 7px 16px !important;
+        font-weight: 700 !important;
+        font-size: 0.88rem !important;
+        transition: background 0.2s, transform 0.15s !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .btn-nav-register:hover {
+        background: #fff !important;
+        color: #0556b3 !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ── DIVIDER ── */
+    .nav-divider {
+        width: 1px; height: 22px;
+        background: rgba(255,255,255,0.2);
+        margin: 0 6px;
+        flex-shrink: 0;
+    }
+
+    /* ── AVATAR ── */
     .nav-avatar {
-        width: 35px;
-        height: 35px;
+        width: 32px; height: 32px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid rgba(255,255,255,0.5);
+        flex-shrink: 0;
     }
 
-    .dropdown {
-        position: relative;
+    /* ── USER TRIGGER ── */
+    .dropdown { position: relative; }
+
+    .user-trigger {
+        display: flex; align-items: center; gap: 8px;
+        cursor: pointer;
+        padding: 5px 10px 5px 6px;
+        border-radius: 30px;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
+        transition: background 0.2s, border-color 0.2s;
+        backdrop-filter: blur(8px);
+    }
+    .user-trigger:hover {
+        background: rgba(255,255,255,0.22);
+        border-color: rgba(255,255,255,0.35);
+    }
+    .user-trigger .u-name {
+        color: #fff;
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+    .user-trigger .u-arrow {
+        color: rgba(255,255,255,0.6);
+        font-size: 0.6rem;
     }
 
+    /* ── DROPDOWN PANEL ── */
     .dropdown-content {
         display: none;
         position: absolute;
-        top: 56px;
+        top: calc(100% + 10px);
         right: 0;
-        background-color: white;
-        min-width: 220px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.16);
-        border-radius: 12px;
+        background: #fff;
+        min-width: 224px;
+        border-radius: 14px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06);
         overflow: hidden;
         z-index: 999;
+        animation: dropIn 0.2s ease;
     }
-
-    .dropdown-content.show {
-        display: block;
+    @keyframes dropIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
+    .dropdown-content.show { display: block; }
 
+    /* User info strip */
     .dropdown-user-info {
-        background: #0b72e6;
+        background: linear-gradient(135deg, #0b72e6, #0556b3);
         padding: 14px 16px;
         color: white;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        display: flex; align-items: center; gap: 10px;
     }
-
     .dropdown-user-info .d-avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        object-fit: cover;
+        width: 36px; height: 36px;
+        border-radius: 50%; object-fit: cover;
         border: 2px solid rgba(255,255,255,0.4);
+        flex-shrink: 0;
     }
+    .dropdown-user-info .d-name  { font-weight: 700; font-size: 0.88rem; }
+    .dropdown-user-info .d-role  { font-size: 0.7rem; opacity: 0.8; margin-top: 1px; }
 
-    .dropdown-user-info .d-name {
-        font-weight: 600;
-        font-size: 0.92rem;
-    }
-
-    .dropdown-user-info .d-role {
-        font-size: 0.72rem;
-        opacity: 0.85;
-    }
-
+    /* Links */
     .dropdown-content a {
-        color: #333;
-        padding: 12px 16px;
+        color: #374151;
+        padding: 10px 16px;
         text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.95rem;
-        transition: background 0.2s ease;
+        display: flex; align-items: center; gap: 10px;
+        font-size: 0.87rem;
+        font-weight: 500;
+        transition: background 0.15s, color 0.15s;
     }
-
     .dropdown-content a:hover {
-        background-color: #f0f7ff;
+        background: #f0f7ff;
         color: #0b72e6;
     }
-
     .dropdown-content .logout-link {
-        color: #e74c3c;
-        border-top: 1px solid #f0f0f0;
+        color: #dc2626;
+        border-top: 1px solid #f3f4f6;
     }
-
     .dropdown-content .logout-link:hover {
         background: #fff5f5;
-        color: #c0392b;
+        color: #b91c1c;
     }
 
-    .user-trigger {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        padding: 5px 10px;
-        border-radius: 25px;
-        transition: background 0.2s ease;
-        background: rgba(255,255,255,0.08);
-    }
+    /* ── BODY OFFSET (since header is fixed) ── */
+    /* Hero pages handle their own top padding — no global offset */
 
-    .user-trigger:hover {
-        background: rgba(255,255,255,0.16);
-    }
-
-    .user-trigger .u-name {
-        color: white;
-        font-size: 0.92rem;
-        font-weight: 600;
-    }
-
-    .user-trigger .u-arrow {
-        color: white;
-        font-size: 0.75rem;
-        opacity: 0.8;
-    }
-
-    @media screen and (max-width: 768px) {
-        nav > a {
-            display: none;
-        }
-
-        .header-container {
-            justify-content: space-between;
-        }
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+        nav > a:not(.btn-nav-login):not(.btn-nav-register) { display: none; }
+        .nav-divider { display: none; }
+        .header-container { padding: 0 16px; }
     }
 </style>
-<header>
+
+<header id="siteHeader">
     <div class="header-container">
-        <h1><a href="/flight_booking/view/home.php">GoZayan</a></h1>
+
+        <!-- Logo -->
+        <a href="/flight_booking/view/home.php" class="header-logo">
+            <div class="logo-icon">✈</div>
+            <span class="logo-text">GoZayan</span>
+        </a>
+
+        <!-- Nav -->
         <nav>
             <a href="/flight_booking/view/searchflights.php">Search Flights</a>
+
             <?php if ($is_webuser): ?>
-                <a href="/flight_booking/view/userhome.php">Dashboard</a>
+                <a href="/flight_booking/view/myBookings.php">My Bookings</a>
+                <div class="nav-divider"></div>
+
                 <div class="dropdown">
                     <div class="user-trigger" onclick="toggleDropdown()">
                         <?php
-                        $avatar_src = "https://ui-avatars.com/api/?name=" . urlencode($user_name) . "&background=ffffff&color=0b72e6&size=80";
+                        $avatar_src = "https://ui-avatars.com/api/?name=" . urlencode($user_name) . "&background=0b72e6&color=fff&size=80";
                         if (!empty($user_image) && file_exists(__DIR__ . "/../view/uploads/" . $user_image)) {
                             $avatar_src = "/flight_booking/view/uploads/" . htmlspecialchars($user_image);
                         }
                         ?>
                         <img src="<?= $avatar_src ?>" class="nav-avatar" alt="">
                         <span class="u-name"><?= htmlspecialchars(explode(' ', trim($user_name))[0]) ?></span>
-                        <span class="u-arrow">&#9660;</span>
+                        <span class="u-arrow">▾</span>
                     </div>
+
                     <div class="dropdown-content" id="userDropdown">
                         <div class="dropdown-user-info">
+                            <img src="<?= $avatar_src ?>" class="d-avatar" alt="">
                             <div>
                                 <div class="d-name"><?= htmlspecialchars($user_name) ?></div>
-                                <div class="d-role">&#9992; GoZayan Traveller</div>
+                                <div class="d-role">✈ GoZayan Traveller</div>
                             </div>
                         </div>
-                        <a href="/flight_booking/view/userhome.php">&#127968; Dashboard</a>
-                        <a href="/flight_booking/view/searchflights.php">&#128269; Search Flights</a>
-                        <a href="/flight_booking/view/myBookings.php">&#127915; My Bookings</a>
-                        <a href="/flight_booking/view/passengerProfile.php">&#128100; My Profile</a>
-                        <a href="/flight_booking/view/changePassword.php">&#128274; Change Password</a>
-                        <a href="/flight_booking/logout.php" class="logout-link">&#128682; Log Out</a>
+                        <a href="/flight_booking/view/userhome.php">🏠 Dashboard</a>
+                        <a href="/flight_booking/view/searchflights.php">🔍 Search Flights</a>
+                        <a href="/flight_booking/view/myBookings.php">🎫 My Bookings</a>
+                        <a href="/flight_booking/view/passengerProfile.php">👤 My Profile</a>
+                        <a href="/flight_booking/view/changePassword.php">🔒 Change Password</a>
+                        <a href="/flight_booking/logout.php" class="logout-link">🚪 Log Out</a>
                     </div>
                 </div>
+
             <?php else: ?>
-                <a href="/flight_booking/view/login.php">Login</a>
-                <a href="/flight_booking/view/register.php">Register</a>
+                <div class="nav-divider"></div>
+                <a href="/flight_booking/view/login.php" class="btn-nav-login">Login</a>
+                <a href="/flight_booking/view/register.php" class="btn-nav-register">Register</a>
             <?php endif; ?>
         </nav>
+
     </div>
 </header>
 
@@ -242,29 +316,26 @@ function toggleDropdown() {
 }
 window.onclick = function(e) {
     if (!e.target.closest('.dropdown')) {
-        document.querySelectorAll('.dropdown-content').forEach(function(d) {
-            d.classList.remove('show');
-        });
+        document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
     }
 }
 
-window.addEventListener('pageshow', function(e) {
-    if (e.persisted) {
-        window.location.reload();
-    }
-});
+// Scroll — darken header when not at top
+window.addEventListener('scroll', () => {
+    document.getElementById('siteHeader')
+            .classList.toggle('scrolled', window.scrollY > 10);
+}, { passive: true });
 
-document.addEventListener('visibilitychange', function() {
+// Session check on tab refocus
+window.addEventListener('pageshow', e => { if (e.persisted) window.location.reload(); });
+document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         fetch('/flight_booking/view/session_check.php', { cache: 'no-store' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
+            .then(r => r.json())
+            .then(data => {
                 const isLoggedIn = <?= $is_webuser ? 'true' : 'false' ?>;
-                if (isLoggedIn && !data.logged_in) {
-                    window.location.reload();
-                }
-            })
-            .catch(function() {});
+                if (isLoggedIn && !data.logged_in) window.location.reload();
+            }).catch(() => {});
     }
 });
 </script>
