@@ -1662,6 +1662,3 @@ if (window.innerWidth <= 900) {
 </html>
 
 <?php include("../includes/footer.php"); ?>
-
-
-the issue is the price amount is way too large (font-size: 2.4rem with Syne 800 weight) and overlaps with the currency symbol and "/ person" text. I need to tighten the price sizing, fix the layout overlap, and clean up the price column.
