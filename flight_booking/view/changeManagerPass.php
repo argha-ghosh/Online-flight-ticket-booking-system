@@ -1,9 +1,10 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include_once("../model/db_conn.php");
 
 if (!isset($_SESSION['email']) || $_SESSION['role'] !== 'manager') {
-    header("Location: /flight_booking/view/login.php"); exit;
+    header("Location: " . BASE_URL . "/view/login.php"); exit;
 }
 
 $email = $_SESSION['email'];
@@ -43,7 +44,7 @@ if (isset($_POST['save'])) {
         $_SESSION['mgr_pass_msg']      = implode(' ', $errors);
         $_SESSION['mgr_pass_msg_type'] = "error";
     }
-    header("Location: /flight_booking/view/changeManagerPass.php"); exit;
+    header("Location: " . BASE_URL . "/view/changeManagerPass.php"); exit;
 }
 
 $flash_msg  = $_SESSION['mgr_pass_msg']      ?? '';
@@ -157,7 +158,7 @@ include("../includes/managerheader.php");
                 <div><h2>Update Password</h2><span>Changing password for <?= htmlspecialchars($email) ?></span></div>
             </div>
             <div class="cmp-form-body">
-                <form action="/flight_booking/view/changeManagerPass.php" method="POST" autocomplete="off">
+                <form action="<?= BASE_URL ?>/view/changeManagerPass.php" method="POST" autocomplete="off">
 
                     <div class="cmp-section">Current Password</div>
                     <div class="cmp-field">
@@ -191,7 +192,7 @@ include("../includes/managerheader.php");
                     </div>
 
                     <div class="cmp-footer">
-                        <a href="/flight_booking/view/viewmanagerprofile.php" class="cmp-btn-cancel">✕ Cancel</a>
+                        <a href="<?= BASE_URL ?>/view/viewmanagerprofile.php" class="cmp-btn-cancel">✕ Cancel</a>
                         <button type="submit" name="save" class="cmp-btn-submit">🔒 Change Password</button>
                     </div>
                 </form>

@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
 
 if (!isset($_SESSION['email']) || $_SESSION['role'] !== 'webuser') {
@@ -217,7 +218,7 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
             <a href="passengerProfile.php" class="sb-nav-item"><i class="fas fa-user"></i> My Profile</a>
             <a href="changePassword.php"   class="sb-nav-item active"><i class="fas fa-lock"></i> Change Password</a>
         </nav>
-        <a href="/flight_booking/logout.php" class="sb-logout"><i class="fas fa-right-from-bracket"></i> Sign Out</a>
+        <a href="<?= BASE_URL ?>/logout.php" class="sb-logout"><i class="fas fa-right-from-bracket"></i> Sign Out</a>
     </aside>
 
     <div class="main-col">

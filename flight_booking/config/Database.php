@@ -1,9 +1,9 @@
 <?php
 class Database {
-    private $host = "localhost";
-    private $db_name = "flight_booking";
-    private $username = "root";
-    private $password = "";
+    private $host = "sql107.infinityfree.com";
+    private $db_name = "if0_42063720_flight_booking";
+    private $username = "if0_42063720";
+    private $password = "K8CvDhFFpMw0ft";
     public $conn;
 
     public function connect() {

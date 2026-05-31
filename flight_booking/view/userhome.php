@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
 
 $is_logged_in = isset($_SESSION['email']) && isset($_SESSION['role']) && $_SESSION['role'] === 'webuser';
@@ -510,7 +511,7 @@ body {
             <a href="changePassword.php" class="sb-nav-item"><i class="fas fa-lock"></i> Change Password</a> -->
         </nav>
 
-        <a href="/flight_booking/logout.php" class="sb-logout">
+        <a href="<?= BASE_URL ?>/logout.php" class="sb-logout">
             <i class="fas fa-right-from-bracket"></i> Sign Out
         </a>
     </aside>

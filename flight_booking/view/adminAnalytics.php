@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../config/base_url.php";
 include("../includes/adminheader.php");
 include("../model/db_conn.php");
 

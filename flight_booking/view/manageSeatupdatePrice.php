@@ -1,10 +1,11 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
 
 // Guard
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
-    header("Location: /flight_booking/view/login.php"); exit;
+    header("Location: " . BASE_URL . "/view/login.php"); exit;
 }
 
 // ── Handle update (PRG) ──────────────────────────────────────
@@ -31,7 +32,7 @@ if (isset($_POST['update_flight'])) {
         $_SESSION['sp_msg_type'] = "error";
     }
     $stmt->close();
-    header("Location: /flight_booking/view/manageSeatupdatePrice.php"); exit;
+    header("Location: " . BASE_URL . "/view/manageSeatupdatePrice.php"); exit;
 }
 
 // Consume flash
@@ -390,7 +391,7 @@ table.sp-table {
                     <!-- Inline edit row -->
                     <tr class="sp-edit-row" id="edit-<?= $f['id'] ?>">
                         <td class="sp-edit-cell" colspan="10">
-                            <form method="POST" action="/flight_booking/view/manageSeatupdatePrice.php">
+                            <form method="POST" action="<?= BASE_URL ?>/view/manageSeatupdatePrice.php">
                                 <input type="hidden" name="flight_id" value="<?= $f['id'] ?>">
                                 <div class="sp-edit-grid">
                                     <div class="sp-ef">

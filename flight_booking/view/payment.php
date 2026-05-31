@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
 
 if (!isset($_SESSION['email']) || $_SESSION['role'] !== 'webuser') {

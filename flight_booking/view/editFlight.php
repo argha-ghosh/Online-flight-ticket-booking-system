@@ -1,11 +1,12 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+require_once __DIR__ . "/../config/base_url.php";
 require_once __DIR__ . "/../model/db_conn.php";
 
 // Guard — must have a valid id
 if (empty($_GET['id'])) {
-    header("Location: /flight_booking/view/addFlight.php"); exit;
+    header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
 }
 
 $flight_id = (int)$_GET['id'];
@@ -82,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['flight_msg_type'] = 'error';
     }
 
-    header("Location: /flight_booking/view/addFlight.php"); exit;
+    header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
 }
 
 // ── Fetch flight ─────────────────────────────────────────────
@@ -93,7 +94,7 @@ $flight = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$flight) {
-    header("Location: /flight_booking/view/addFlight.php"); exit;
+    header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
 }
 
 include("../includes/adminheader.php");
@@ -285,7 +286,7 @@ include("../includes/adminheader.php");
 <div class="ef-page">
 
     <!-- Back -->
-    <a href="/flight_booking/view/addFlight.php" class="ef-back">← Back to Flights</a>
+    <a href="<?= BASE_URL ?>/view/addFlight.php" class="ef-back">← Back to Flights</a>
 
     <!-- Title -->
     <div class="ef-titlebar">
@@ -317,7 +318,7 @@ include("../includes/adminheader.php");
         </div>
 
         <div class="ef-card-body">
-            <form action="/flight_booking/view/editFlight.php?id=<?= (int)$flight['id'] ?>" method="POST"
+            <form action="<?= BASE_URL ?>/view/editFlight.php?id=<?= (int)$flight['id'] ?>" method="POST"
                   enctype="multipart/form-data" id="editFlightForm">
 
                 <input type="hidden" name="id"           value="<?= (int)$flight['id'] ?>">
@@ -477,7 +478,7 @@ include("../includes/adminheader.php");
 
                 <!-- Actions -->
                 <div class="ef-actions">
-                    <a href="/flight_booking/view/addFlight.php" class="ef-btn-cancel">✕ Cancel</a>
+                    <a href="<?= BASE_URL ?>/view/addFlight.php" class="ef-btn-cancel">✕ Cancel</a>
                     <button type="submit" name="update" class="ef-btn-update">
                         💾 Save Changes
                     </button>

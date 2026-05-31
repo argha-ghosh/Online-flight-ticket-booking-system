@@ -1,5 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
 
 // ── AJAX: get flight details by code ────────────────────────
@@ -21,7 +22,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_flight') {
 
 // Guard
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
-    header("Location: /flight_booking/view/login.php"); exit;
+    header("Location: " . BASE_URL . "/view/login.php"); exit;
 }
 
 // ── Helper ───────────────────────────────────────────────────
@@ -41,7 +42,7 @@ if (isset($_GET['delete_schedule'])) {
     $s->execute();
     $_SESSION['mgr_msg']      = "Schedule deleted.";
     $_SESSION['mgr_msg_type'] = "success";
-    header("Location: /flight_booking/view/managerdemo.php"); exit;
+    header("Location: " . BASE_URL . "/view/managerdemo.php"); exit;
 }
 
 // ── Save / update schedule (PRG) ────────────────────────────
@@ -74,7 +75,7 @@ if (isset($_POST['save_schedule'])) {
         $_SESSION['mgr_msg']      = $exists ? "Schedule updated successfully!" : "Schedule saved successfully!";
         $_SESSION['mgr_msg_type'] = "success";
     }
-    header("Location: /flight_booking/view/managerdemo.php"); exit;
+    header("Location: " . BASE_URL . "/view/managerdemo.php"); exit;
 }
 
 // Consume flash
@@ -338,7 +339,7 @@ table.mgr-table { width:100%; border-collapse:collapse; font-size:0.86rem; }
             <span class="mgr-badge" id="schedFormBadge">New Schedule</span>
         </div>
         <div class="mgr-sched-form">
-            <form method="POST" action="/flight_booking/view/managerdemo.php" id="schedForm">
+            <form method="POST" action="<?= BASE_URL ?>/view/managerdemo.php" id="schedForm">
                 <div class="mgr-sched-grid">
                     <div class="mgr-sf">
                         <label>Flight Code <span style="color:#e53e3e">*</span></label>

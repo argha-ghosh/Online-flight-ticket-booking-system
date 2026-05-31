@@ -1,9 +1,10 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include_once("../model/db_conn.php");
 
 if (!isset($_SESSION['email']) || $_SESSION['role'] !== 'manager') {
-    header("Location: /flight_booking/view/login.php"); exit;
+    header("Location: " . BASE_URL . "/view/login.php"); exit;
 }
 
 $manager_email = $_SESSION['email'];
@@ -62,7 +63,7 @@ if (isset($_POST['save'])) {
         $_SESSION['mgr_profile_msg']      = $err;
         $_SESSION['mgr_profile_msg_type'] = "error";
     }
-    header("Location: /flight_booking/view/viewmanagerprofile.php"); exit;
+    header("Location: " . BASE_URL . "/view/viewmanagerprofile.php"); exit;
 }
 
 $flash_msg  = $_SESSION['mgr_profile_msg']      ?? '';
@@ -226,7 +227,7 @@ include("../includes/managerheader.php");
                 <button type="button" class="mp-edit-btn" id="mpEditBtn" onclick="mpStartEdit()">✏️ Edit Profile</button>
             </div>
             <div class="mp-details-body">
-                <form action="/flight_booking/view/viewmanagerprofile.php" method="POST" enctype="multipart/form-data" id="mpForm">
+                <form action="<?= BASE_URL ?>/view/viewmanagerprofile.php" method="POST" enctype="multipart/form-data" id="mpForm">
 
                     <div class="mp-section">Personal Information</div>
                     <div class="mp-grid three">

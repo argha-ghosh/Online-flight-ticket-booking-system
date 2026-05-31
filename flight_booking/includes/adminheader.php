@@ -2,10 +2,11 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once __DIR__ . '/../config/base_url.php';
 
 // Protect admin pages - redirect if not admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /flight_booking/view/login.php");
+    header("Location: " . BASE_URL . "/view/login.php");
     exit;
 }
 
@@ -178,10 +179,10 @@ $admin_email = $_SESSION['email'] ?? '';
     <div class="header-container">
         <h1>&#128737; Admin Panel</h1>
         <nav>
-            <a href="/flight_booking/view/adminAnalytics.php">Analytics</a>
-            <a href="/flight_booking/view/addAirline.php">Airlines</a>
-            <a href="/flight_booking/view/addFlight.php">Flights</a>
-            <a href="/flight_booking/view/adduser.php">Add User</a>
+            <a href="<?= BASE_URL ?>/view/adminAnalytics.php">Analytics</a>
+            <a href="<?= BASE_URL ?>/view/addAirline.php">Airlines</a>
+            <a href="<?= BASE_URL ?>/view/addFlight.php">Flights</a>
+            <a href="<?= BASE_URL ?>/view/adduser.php">Add User</a>
 
             <div class="dropdown">
                 <div class="admin-trigger" onclick="toggleDropdown()">
@@ -195,10 +196,10 @@ $admin_email = $_SESSION['email'] ?? '';
                         <div class="d-name">Administrator</div>
                         <div class="d-email"><?= htmlspecialchars($admin_email) ?></div>
                     </div>
-                    <a href="/flight_booking/view/adminAnalytics.php">📊 System Analytics</a>
-                    <a href="/flight_booking/view/adminprofile.php">&#128100; View Profile</a>
-                    <a href="/flight_booking/view/adminChangePassword.php">&#128274; Change Password</a>
-                    <a href="/flight_booking/logout.php" class="logout-link">&#128682; Log Out</a>
+                    <a href="<?= BASE_URL ?>/view/adminAnalytics.php">📊 System Analytics</a>
+                    <a href="<?= BASE_URL ?>/view/adminprofile.php">&#128100; View Profile</a>
+                    <a href="<?= BASE_URL ?>/view/adminChangePassword.php">&#128274; Change Password</a>
+                    <a href="<?= BASE_URL ?>/logout.php" class="logout-link">&#128682; Log Out</a>
                 </div>
             </div>
         </nav>

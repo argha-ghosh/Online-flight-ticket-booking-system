@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../config/base_url.php";
 // Controller MUST run first — it may call header() to redirect.
 // The controller file lives in the same `view/` folder in this codebase.
 include("AirlineController.php");

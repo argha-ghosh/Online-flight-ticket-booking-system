@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+require_once __DIR__ . "/../config/base_url.php";
 }
 
 require_once __DIR__ . "/../model/FlightModel.php";
@@ -45,7 +46,7 @@ if (isset($_POST['submit'])) {
         $_SESSION['flight_msg_type'] = 'error';
     }
 
-    header("Location: /flight_booking/view/addFlight.php");
+    header("Location: " . BASE_URL . "/view/addFlight.php");
     exit;
 }
 
@@ -91,7 +92,7 @@ if (isset($_POST['update'])) {
         $_SESSION['flight_msg_type'] = 'error';
     }
 
-    header("Location: /flight_booking/view/addFlight.php");
+    header("Location: " . BASE_URL . "/view/addFlight.php");
     exit;
 }
 
@@ -114,7 +115,7 @@ if (isset($_GET['delete_id'])) {
         $_SESSION['flight_msg_type'] = 'error';
     }
 
-    header("Location: /flight_booking/view/addFlight.php");
+    header("Location: " . BASE_URL . "/view/addFlight.php");
     exit;
 }
 ?>

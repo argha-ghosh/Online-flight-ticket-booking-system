@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
 
 $manager_id = 16; // Default manager ID
@@ -220,6 +221,7 @@ if (isset($_POST['save_schedule'])) {
             </thead>
             <tbody>
                 <?php
+require_once __DIR__ . "/../config/base_url.php";
                 foreach ($days as $day) {
                     $is_weekend = in_array($day, array('Saturday', 'Sunday'));
                     
@@ -257,6 +259,7 @@ if (isset($_POST['save_schedule'])) {
                         </td>
                     </tr>
                     <?php
+require_once __DIR__ . "/../config/base_url.php";
                 }
                 ?>
             </tbody>

@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     if (!headers_sent()) session_start();
 }
+require_once __DIR__ . '/../config/base_url.php';
 
 if (isset($_SESSION['role']) && !headers_sent()) {
     header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
@@ -267,17 +268,17 @@ if ($is_webuser && isset($_SESSION['email'])) {
     <div class="header-container">
 
         <!-- Logo -->
-        <a href="/flight_booking/view/home.php" class="header-logo">
+        <a href="<?= BASE_URL ?>/view/home.php" class="header-logo">
             <div class="logo-icon">✈</div>
             <span class="logo-text">GoZayan</span>
         </a>
 
         <!-- Nav -->
         <nav>
-            <a href="/flight_booking/view/searchflights.php">Search Flights</a>
+            <a href="<?= BASE_URL ?>/view/searchflights.php">Search Flights</a>
 
             <?php if ($is_webuser): ?>
-                <a href="/flight_booking/view/userhome.php">Dashboard</a>
+                <a href="<?= BASE_URL ?>/view/userhome.php">Dashboard</a>
                 <div class="nav-divider"></div>
 
                 <div class="dropdown">
@@ -285,7 +286,7 @@ if ($is_webuser && isset($_SESSION['email'])) {
                         <?php
                         $avatar_src = "https://ui-avatars.com/api/?name=" . urlencode($user_name) . "&background=0b72e6&color=fff&size=80";
                         if (!empty($user_image) && file_exists(__DIR__ . "/../view/uploads/" . $user_image)) {
-                            $avatar_src = "/flight_booking/view/uploads/" . htmlspecialchars($user_image);
+                            $avatar_src = BASE_URL . "/view/uploads/" . htmlspecialchars($user_image);
                         }
                         ?>
                         <img src="<?= $avatar_src ?>" class="nav-avatar" alt="">
@@ -301,19 +302,19 @@ if ($is_webuser && isset($_SESSION['email'])) {
                                 <div class="d-role">✈ GoZayan Traveller</div>
                             </div>
                         </div>
-                        <a href="/flight_booking/view/userhome.php">🏠 Dashboard</a>
-                        <a href="/flight_booking/view/searchflights.php">🔍 Search Flights</a>
-                        <a href="/flight_booking/view/myBookings.php">🎫 My Bookings</a>
-                        <a href="/flight_booking/view/passengerProfile.php">👤 My Profile</a>
-                        <a href="/flight_booking/view/changePassword.php">🔒 Change Password</a>
-                        <a href="/flight_booking/logout.php" class="logout-link">🚪 Log Out</a>
+                        <a href="<?= BASE_URL ?>/view/userhome.php">🏠 Dashboard</a>
+                        <a href="<?= BASE_URL ?>/view/searchflights.php">🔍 Search Flights</a>
+                        <a href="<?= BASE_URL ?>/view/myBookings.php">🎫 My Bookings</a>
+                        <a href="<?= BASE_URL ?>/view/passengerProfile.php">👤 My Profile</a>
+                        <a href="<?= BASE_URL ?>/view/changePassword.php">🔒 Change Password</a>
+                        <a href="<?= BASE_URL ?>/logout.php" class="logout-link">🚪 Log Out</a>
                     </div>
                 </div>
 
             <?php else: ?>
                 <div class="nav-divider"></div>
-                <a href="/flight_booking/view/login.php" class="btn-nav-login">Login</a>
-                <a href="/flight_booking/view/register.php" class="btn-nav-register">Register</a>
+                <a href="<?= BASE_URL ?>/view/login.php" class="btn-nav-login">Login</a>
+                <a href="<?= BASE_URL ?>/view/register.php" class="btn-nav-register">Register</a>
             <?php endif; ?>
         </nav>
 
@@ -340,7 +341,7 @@ window.addEventListener('scroll', () => {
 window.addEventListener('pageshow', e => { if (e.persisted) window.location.reload(); });
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        fetch('/flight_booking/view/session_check.php', { cache: 'no-store' })
+        fetch('<?= BASE_URL ?>/view/session_check.php', { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 const isLoggedIn = <?= $is_webuser ? 'true' : 'false' ?>;

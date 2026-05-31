@@ -1,0 +1,12 @@
+RewriteEngine On
+
+RewriteBase /
+# If someone visits the root, redirect to the homepage
+RewriteRule ^$ /view/home.php [L,R=302]
+
+# Prevent directory listing
+Options -Indexes
+
+# Set PHP error display (disable in production)
+php_flag display_errors Off
+php_flag log_errors On

@@ -1,5 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include_once("../model/db_conn.php");
 
 if (isset($_POST['submit'])) {
@@ -65,7 +66,7 @@ if (isset($_POST['submit'])) {
             $_SESSION['user_msg_type'] = "error";
         }
     }
-    header("Location: /flight_booking/view/adduser.php"); exit;
+    header("Location: " . BASE_URL . "/view/adduser.php"); exit;
 }
 
 $flash_msg  = $_SESSION['user_msg']      ?? '';
@@ -95,7 +96,7 @@ if (isset($_GET['delete_id'])) {
             $_SESSION['user_msg_type'] = 'error';
         }
     } else { $sel->close(); }
-    header("Location: /flight_booking/view/adduser.php"); exit;
+    header("Location: " . BASE_URL . "/view/adduser.php"); exit;
 }
 
 include("../includes/adminheader.php");
@@ -620,7 +621,7 @@ body {
                 </div>
             </div>
             <div class="panel-body">
-                <form method="POST" action="/flight_booking/view/adduser.php"
+                <form method="POST" action="<?= BASE_URL ?>/view/adduser.php"
                       enctype="multipart/form-data" id="addUserForm">
 
                     <!-- Personal -->

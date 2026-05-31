@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
 
 $error = "";
@@ -38,7 +39,7 @@ if (isset($_POST['submit'])) {
                     exit;
                 }
                 elseif ($user['role'] === 'webuser') {
-                    header("Location: ../view/userhome.php");
+                    header("Location: userhome.php");
                     exit;       
                 }
                 else {

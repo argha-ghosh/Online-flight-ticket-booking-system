@@ -1,10 +1,11 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . "/../config/base_url.php";
 include_once("../model/db_conn.php");
 
 // Guard — admin only
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /flight_booking/view/login.php"); exit;
+    header("Location: " . BASE_URL . "/view/login.php"); exit;
 }
 
 $email = $_SESSION['email'] ?? '';
@@ -62,7 +63,7 @@ if (isset($_POST['change_password'])) {
         $_SESSION['acp_msg_type'] = "error";
     }
 
-    header("Location: /flight_booking/view/adminChangePassword.php"); exit;
+    header("Location: " . BASE_URL . "/view/adminChangePassword.php"); exit;
 }
 
 // Consume flash
@@ -321,7 +322,7 @@ include("../includes/adminheader.php");
                 </div>
             </div>
             <div class="acp-form-body">
-                <form action="/flight_booking/view/adminChangePassword.php"
+                <form action="<?= BASE_URL ?>/view/adminChangePassword.php"
                       method="POST" autocomplete="off">
 
                     <!-- Current password -->
@@ -371,7 +372,7 @@ include("../includes/adminheader.php");
 
                     <!-- Footer -->
                     <div class="acp-footer">
-                        <a href="/flight_booking/view/adminprofile.php" class="acp-btn-cancel">
+                        <a href="<?= BASE_URL ?>/view/adminprofile.php" class="acp-btn-cancel">
                             ✕ Cancel
                         </a>
                         <button type="submit" name="change_password" class="acp-btn-submit">

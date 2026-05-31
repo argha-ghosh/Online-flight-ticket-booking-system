@@ -2,9 +2,10 @@
 // ── Everything runs here — no external controller/model ──────
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+require_once __DIR__ . "/../config/base_url.php";
 // Guard
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /flight_booking/view/login.php"); exit;
+    header("Location: " . BASE_URL . "/view/login.php"); exit;
 }
 
 require_once __DIR__ . "/../model/db_conn.php";
@@ -43,7 +44,7 @@ if (isset($_GET['delete_id'])) {
     $s->bind_param("i", $id); $s->execute(); $s->close();
     $_SESSION['flight_msg']      = "Flight deleted.";
     $_SESSION['flight_msg_type'] = "success";
-    header("Location: /flight_booking/view/addFlight.php"); exit;
+    header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
 }
 
 // ── ADD ──────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $image)) {
         $_SESSION['flight_msg']      = "Image upload failed. Check upload folder permissions.";
         $_SESSION['flight_msg_type'] = "error";
-        header("Location: /flight_booking/view/addFlight.php"); exit;
+        header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
     }
 
     // INSERT — exact column order matching the schema
@@ -85,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$stmt) {
         $_SESSION['flight_msg']      = "DB prepare error: " . $conn->error;
         $_SESSION['flight_msg_type'] = "error";
-        header("Location: /flight_booking/view/addFlight.php"); exit;
+        header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
     }
 
     // Types: s s s s s  s  s  s  d  s  s  i  i  d  s  s  = 16 params, 16 chars
@@ -134,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (file_exists($p)) unlink($p);
     }
     $stmt->close();
-    header("Location: /flight_booking/view/addFlight.php"); exit;
+    header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
 }
 
 // ── Consume flash ────────────────────────────────────────────
@@ -262,7 +263,7 @@ include __DIR__ . "/../includes/adminheader.php";
                 <div><h2>Add New Flight</h2><span>Fill in the flight details below</span></div>
             </div>
             <div class="fl-form-body">
-                <form action="/flight_booking/view/addFlight.php" method="POST" enctype="multipart/form-data">
+                <form action="<?= BASE_URL ?>/view/addFlight.php" method="POST" enctype="multipart/form-data">
 
                     <div class="fl-section">Flight Identity</div>
                     <div class="fl-field">

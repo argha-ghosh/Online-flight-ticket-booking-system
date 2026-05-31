@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../config/base_url.php";
 include("../includes/adminheader.php");
 include("../model/db_conn.php");
 
@@ -254,6 +255,7 @@ select.ap-input[disabled] { opacity:0.7; cursor:default; }
             <div class="ap-avatar-wrap">
                 <div class="ap-avatar">
                     <?php
+require_once __DIR__ . "/../config/base_url.php";
                     $initials = strtoupper(substr($admin['name'] ?? 'A', 0, 1));
                     ?>
                     <span><?= $initials ?></span>
@@ -267,6 +269,7 @@ select.ap-input[disabled] { opacity:0.7; cursor:default; }
                     <div class="ap-stat">
                         <div class="stat-val">
                             <?php
+require_once __DIR__ . "/../config/base_url.php";
                             $r = $conn->query("SELECT COUNT(*) AS c FROM flights");
                             echo $r ? $r->fetch_assoc()['c'] : '—';
                             ?>
@@ -276,6 +279,7 @@ select.ap-input[disabled] { opacity:0.7; cursor:default; }
                     <div class="ap-stat">
                         <div class="stat-val">
                             <?php
+require_once __DIR__ . "/../config/base_url.php";
                             $r2 = $conn->query("SELECT COUNT(*) AS c FROM airlines");
                             echo $r2 ? $r2->fetch_assoc()['c'] : '—';
                             ?>
@@ -285,6 +289,7 @@ select.ap-input[disabled] { opacity:0.7; cursor:default; }
                     <div class="ap-stat">
                         <div class="stat-val">
                             <?php
+require_once __DIR__ . "/../config/base_url.php";
                             $r3 = $conn->query("SELECT COUNT(*) AS c FROM users");
                             echo $r3 ? $r3->fetch_assoc()['c'] : '—';
                             ?>
@@ -294,6 +299,7 @@ select.ap-input[disabled] { opacity:0.7; cursor:default; }
                     <div class="ap-stat">
                         <div class="stat-val">
                             <?php
+require_once __DIR__ . "/../config/base_url.php";
                             $r4 = $conn->query("SELECT COUNT(*) AS c FROM bookings");
                             echo $r4 ? $r4->fetch_assoc()['c'] : '—';
                             ?>

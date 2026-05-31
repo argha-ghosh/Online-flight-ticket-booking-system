@@ -2,10 +2,11 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once __DIR__ . '/../config/base_url.php';
 
 // Protect manager pages - redirect if not manager
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
-    header("Location: /flight_booking/view/login.php");
+    header("Location: " . BASE_URL . "/view/login.php");
     exit;
 }
 
@@ -176,9 +177,9 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
     <div class="header-container">
         <h1>&#9992; Manager Panel</h1>
         <nav>
-            <a href="/flight_booking/view/managerdemo.php">Manage Flights</a>
-            <a href="/flight_booking/view/manageSeatupdatePrice.php">Seats &amp; Prices</a>
-            <!-- <a href="/flight_booking/view/passengerHome.php">Passenger Search</a> -->
+            <a href="<?= BASE_URL ?>/view/managerdemo.php">Manage Flights</a>
+            <a href="<?= BASE_URL ?>/view/manageSeatupdatePrice.php">Seats &amp; Prices</a>
+            <!-- <a href="<?= BASE_URL ?>/view/passengerHome.php">Passenger Search</a> -->
 
             <!-- Notification Bell -->
             <div class="notif-bell" onclick="toggleNotifDropdown(event)">
@@ -209,13 +210,13 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
                             <div class="d-role">&#9196; Flight Manager</div>
                         </div>
                     </div>
-                    <a href="/flight_booking/view/viewmanagerprofile.php">&#128100; View Profile</a>
-                    <!-- <a href="/flight_booking/view/managerdemo.php">&#9992; Manage Flights</a>
-                    <a href="/flight_booking/view/manageSeatupdatePrice.php">&#128186; Seats &amp; Prices</a>
-                    <a href="/flight_booking/view/passengerHome.php">&#128269; Passenger Search</a>
-                    <a href="/flight_booking/view/schedule_form.php">&#128197; My Schedule</a> -->
-                    <a href="/flight_booking/view/changeManagerPass.php">&#128274; Change Password</a>
-                    <a href="/flight_booking/logout.php" class="logout-link">&#128682; Log Out</a>
+                    <a href="<?= BASE_URL ?>/view/viewmanagerprofile.php">&#128100; View Profile</a>
+                    <!-- <a href="<?= BASE_URL ?>/view/managerdemo.php">&#9992; Manage Flights</a>
+                    <a href="<?= BASE_URL ?>/view/manageSeatupdatePrice.php">&#128186; Seats &amp; Prices</a>
+                    <a href="<?= BASE_URL ?>/view/passengerHome.php">&#128269; Passenger Search</a>
+                    <a href="<?= BASE_URL ?>/view/schedule_form.php">&#128197; My Schedule</a> -->
+                    <a href="<?= BASE_URL ?>/view/changeManagerPass.php">&#128274; Change Password</a>
+                    <a href="<?= BASE_URL ?>/logout.php" class="logout-link">&#128682; Log Out</a>
                 </div>
             </div>
         </nav>
@@ -238,7 +239,7 @@ function toggleNotifDropdown(e) {
 }
 
 function fetchNotifications() {
-    fetch('/flight_booking/view/notifications.php?action=get_unread')
+    fetch('<?= BASE_URL ?>/view/notifications.php?action=get_unread')
         .then(r => r.json())
         .then(data => {
             const list = document.getElementById('notifList');
@@ -267,13 +268,13 @@ function fetchNotifications() {
 }
 
 function markNotifRead(notifId) {
-    fetch(`/flight_booking/view/notifications.php?action=mark_read&notif_id=${notifId}`)
+    fetch(`<?= BASE_URL ?>/view/notifications.php?action=mark_read&notif_id=${notifId}`)
         .then(() => fetchNotifications())
         .catch(e => console.error('Error marking notification as read:', e));
 }
 
 function markAllNotifRead() {
-    fetch('/flight_booking/view/notifications.php?action=mark_all_read')
+    fetch('<?= BASE_URL ?>/view/notifications.php?action=mark_all_read')
         .then(() => fetchNotifications())
         .catch(e => console.error('Error marking all notifications as read:', e));
 }

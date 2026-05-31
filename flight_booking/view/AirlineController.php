@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+require_once __DIR__ . "/../config/base_url.php";
 }
 
 include("../model/db_conn.php");
@@ -38,7 +39,7 @@ if (isset($_POST['submit'])) {
         $_SESSION['airline_msg_type'] = 'error';
     }
 
-    header("Location: /flight_booking/view/addAirline.php");
+    header("Location: " . BASE_URL . "/view/addAirline.php");
     exit;
 }
 
@@ -54,7 +55,7 @@ if (isset($_GET['delete_id'])) {
         $_SESSION['airline_msg_type'] = 'error';
     }
 
-    header("Location: /flight_booking/view/addAirline.php");
+    header("Location: " . BASE_URL . "/view/addAirline.php");
     exit;
 }
 
@@ -96,7 +97,7 @@ if (isset($_POST['update'])) {
         $_SESSION['airline_msg_type'] = 'error';
     }
 
-    header("Location: /flight_booking/view/addAirline.php");
+    header("Location: " . BASE_URL . "/view/addAirline.php");
     exit;
 }
 

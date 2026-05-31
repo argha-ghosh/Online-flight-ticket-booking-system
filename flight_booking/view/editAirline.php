@@ -1,17 +1,18 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+require_once __DIR__ . "/../config/base_url.php";
 // DB and update MUST run before any output
 include_once("../model/db_conn.php");
 
 // Guard
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /flight_booking/view/login.php"); exit;
+    header("Location: " . BASE_URL . "/view/login.php"); exit;
 }
 
 // Guard — need a valid id
 if (empty($_GET['id'])) {
-    header("Location: /flight_booking/view/addAirline.php"); exit;
+    header("Location: " . BASE_URL . "/view/addAirline.php"); exit;
 }
 $airline_id = (int)$_GET['id'];
 
@@ -58,7 +59,7 @@ if (isset($_POST['update'])) {
         $_SESSION['airline_msg']      = 'Update error: ' . $conn->error;
         $_SESSION['airline_msg_type'] = 'error';
     }
-    header("Location: /flight_booking/view/addAirline.php"); exit;
+    header("Location: " . BASE_URL . "/view/addAirline.php"); exit;
 }
 
 // ── Fetch airline ────────────────────────────────────────────
@@ -69,7 +70,7 @@ $airline = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$airline) {
-    header("Location: /flight_booking/view/addAirline.php"); exit;
+    header("Location: " . BASE_URL . "/view/addAirline.php"); exit;
 }
 
 // Now safe to output HTML
@@ -152,7 +153,7 @@ include("../includes/adminheader.php");
 
 <div class="ea-page">
 
-    <a href="/flight_booking/view/addAirline.php" class="ea-back">← Back to Airlines</a>
+    <a href="<?= BASE_URL ?>/view/addAirline.php" class="ea-back">← Back to Airlines</a>
 
     <div class="ea-titlebar">
         <div class="ea-titlebar-icon">✏️</div>
@@ -182,7 +183,7 @@ include("../includes/adminheader.php");
         </div>
 
         <div class="ea-card-body">
-            <form action="/flight_booking/view/editAirline.php?id=<?= $airline_id ?>"
+            <form action="<?= BASE_URL ?>/view/editAirline.php?id=<?= $airline_id ?>"
                   method="POST" enctype="multipart/form-data">
 
                 <input type="hidden" name="id" value="<?= (int)$airline['id'] ?>">
@@ -284,7 +285,7 @@ include("../includes/adminheader.php");
 
                 <!-- Actions -->
                 <div class="ea-actions">
-                    <a href="/flight_booking/view/addAirline.php" class="ea-btn-cancel">✕ Cancel</a>
+                    <a href="<?= BASE_URL ?>/view/addAirline.php" class="ea-btn-cancel">✕ Cancel</a>
                     <button type="submit" name="update" class="ea-btn-save">💾 Save Changes</button>
                 </div>
 

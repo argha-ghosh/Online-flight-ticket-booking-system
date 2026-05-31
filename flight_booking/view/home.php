@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
-include("../includes/header.php");
+require_once __DIR__ . "/../config/base_url.php";
+// include("../includes/header.php");
 include("../model/db_conn.php");
 
 $total_flights  = $conn->query("SELECT COUNT(*) as c FROM flights WHERE seat > 0")->fetch_assoc()['c'] ?? 0;
