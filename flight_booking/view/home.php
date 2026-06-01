@@ -721,6 +721,7 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
                         <select name="class">
                             <option>Economy</option>
                             <option>Business</option>
+                            <option>First Class</option>
                         </select>
                     </div>
                 </div>

@@ -382,16 +382,19 @@ $total_passengers = $adults + $children;
     }
     .pax-trigger .pax-icon { color: var(--gold); margin-right: 8px; }
     .pax-dropdown {
-        position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+        position: fixed;
         background: #fff;
         border: 1.5px solid var(--cream-3);
         border-radius: var(--radius);
         padding: 18px;
         box-shadow: var(--shadow-lg);
-        z-index: 100; display: none;
-        min-width: 260px;
+        z-index: 9999;
+        display: none;
+        min-width: 300px;
+        max-height: 80vh;
+        overflow-y: auto;
     }
-    .pax-dropdown.open { display: block; animation: dropIn .2s ease; }
+    .pax-dropdown.open { animation: dropIn .2s ease; }
     @keyframes dropIn {
         from { opacity:0; transform:translateY(-6px); }
         to   { opacity:1; transform:translateY(0); }
@@ -414,16 +417,75 @@ $total_passengers = $adults + $children;
     }
     .pax-counter button:hover { background: var(--gold); color: #fff; border-color: var(--gold); }
     .pax-counter span { font-weight: 700; font-size: 1rem; color: var(--ink); min-width: 20px; text-align: center; }
-    .pax-class-row { display: flex; gap: 8px; padding: 12px 0 4px; }
+    /* ── Cabin class selector ── */
+    .pax-class-label {
+        font-family: var(--font-mono);
+        font-size: .62rem; font-weight: 500;
+        letter-spacing: .12em; text-transform: uppercase;
+        color: var(--ink-3);
+        padding: 12px 0 8px;
+        display: block;
+        border-top: 1px solid var(--cream-2);
+        margin-top: 4px;
+    }
+    .pax-class-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        padding-bottom: 4px;
+    }
     .pax-class-opt {
-        flex: 1; text-align: center; padding: 8px;
-        border: 1.5px solid var(--cream-3); border-radius: var(--radius-sm);
-        font-size: .82rem; font-weight: 600; color: var(--ink-3);
-        cursor: pointer; transition: all .18s; user-select: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 10px 6px 9px;
+        border: 1.5px solid var(--cream-3);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all .18s;
+        user-select: none;
+        background: var(--cream);
+        text-align: center;
+    }
+    .pax-class-opt:hover {
+        border-color: var(--gold);
+        background: var(--gold-tint);
     }
     .pax-class-opt input { display: none; }
-    .pax-class-opt.active, .pax-class-opt:has(input:checked) {
-        background: var(--navy); color: #fff; border-color: var(--navy);
+    .pax-class-opt .cls-icon {
+        font-size: 1.3rem;
+        line-height: 1;
+    }
+    .pax-class-opt .cls-name {
+        font-size: .72rem;
+        font-weight: 700;
+        color: var(--ink-2);
+        white-space: nowrap;
+        letter-spacing: .01em;
+    }
+    .pax-class-opt .cls-sub {
+        font-size: .6rem;
+        color: var(--ink-4);
+        font-weight: 500;
+    }
+    .pax-class-opt.active,
+    .pax-class-opt:has(input:checked) {
+        background: var(--navy);
+        border-color: var(--navy);
+        box-shadow: 0 3px 10px rgba(15,37,64,.2);
+    }
+    .pax-class-opt.active .cls-name,
+    .pax-class-opt:has(input:checked) .cls-name {
+        color: #fff;
+    }
+    .pax-class-opt.active .cls-sub,
+    .pax-class-opt:has(input:checked) .cls-sub {
+        color: rgba(255,255,255,.55);
+    }
+    .pax-class-opt.active .cls-icon,
+    .pax-class-opt:has(input:checked) .cls-icon {
+        /* emoji icons don't need filter */
     }
     .pax-done {
         width: 100%; margin-top: 12px; padding: 10px;
@@ -999,19 +1061,124 @@ $total_passengers = $adults + $children;
        RESPONSIVE
     ══════════════════════════════════ */
     @media (max-width: 900px) {
-        .page-body { grid-template-columns: 1fr; }
+        .page-body {
+            grid-template-columns: 1fr;
+            padding: 24px 14px 100px;
+            gap: 16px;
+        }
         .sidebar { position: static; display: none; }
         .sidebar.open { display: flex; }
-        .mobile-filter-btn { display: flex; }
+        .mobile-filter-btn { display: flex !important; }
         .swap-btn { display: none; }
+        .results-header { padding: 12px 14px; }
+        .route-display { font-size: 1.2rem; }
+        .sort-row { gap: 4px; }
+        .sort-btn { padding: 5px 11px; font-size: .73rem; }
     }
-    @media (min-width: 901px) { .mobile-filter-btn { display: none; } }
-    @media (max-width: 560px) {
-        .search-card { padding: 20px 18px; }
-        .flight-card { flex-direction: column; }
-        .fc-img, .fc-img-placeholder { width: 100%; height: 160px; border-right: none; border-bottom: 1px solid var(--cream-2); }
-        .fc-pricing { border-left: none; border-top: 1px solid var(--cream-2); flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
-        .hero h1 { font-size: 2rem; }
+    @media (min-width: 901px) { .mobile-filter-btn { display: none !important; } }
+
+    @media (max-width: 640px) {
+        /* Hero */
+        .hero { min-height: auto; padding: 70px 16px 100px; }
+        .hero h1 { font-size: 1.9rem; }
+        .hero-sub { font-size: .85rem; }
+
+        /* Search card */
+        .search-card { padding: 18px 14px; border-radius: 18px; }
+        .trip-tabs label { padding: 6px 14px; font-size: .78rem; }
+        .form-row-1, .form-row-2 { flex-direction: column; gap: 8px; }
+        .fg { min-width: 0 !important; flex: none !important; width: 100%; }
+        .pax-wrap { width: 100%; }
+        .search-btn { width: 100%; justify-content: center; padding: 13px; }
+
+        /* Sticky bar */
+        .sticky-bar { padding: 10px 14px; gap: 10px; flex-wrap: wrap; }
+        .sticky-route { font-size: .95rem; }
+        .sticky-meta { font-size: .7rem; width: 100%; }
+        .sticky-cta { margin-left: 0; padding: 6px 14px; font-size: .75rem; }
+
+        /* Flight card — stack vertically */
+        .flight-card {
+            flex-direction: column;
+            border-radius: 16px;
+        }
+        .fc-img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-right: none;
+            border-bottom: 1px solid var(--cream-2);
+        }
+        .fc-img-placeholder {
+            width: 100%;
+            height: 110px;
+            border-right: none;
+            border-bottom: 1px solid var(--cream-2);
+            font-size: 2.4rem;
+        }
+        .fc-body {
+            flex-direction: column;
+            padding: 16px 14px;
+            gap: 14px;
+        }
+        .fc-info { min-width: 0; }
+        .fc-title { font-size: 1.05rem; }
+        .fc-city { font-size: .95rem; }
+        .fc-tags { gap: 5px; }
+        .tag { font-size: .67rem; padding: 3px 8px; }
+        .fc-times { padding: 8px 10px; gap: 10px; }
+        .time-val { font-size: .85rem; }
+        .fc-meta { gap: 5px; }
+        .fc-meta-item { font-size: .68rem; padding: 3px 7px; }
+
+        /* Pricing panel — horizontal strip at bottom */
+        .fc-pricing {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-left: none;
+            border-top: 1px solid var(--cream-2);
+            padding: 14px;
+            min-width: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #f7f2eb 0%, #ede6db 100%);
+        }
+        .fc-pricing .price-lbl { display: none; }
+        .price-amount { font-size: 2.2rem; }
+        .price-per { font-size: .68rem; }
+        .book-btn {
+            width: auto;
+            flex: 1;
+            min-width: 120px;
+            padding: 11px 16px;
+            font-size: .85rem;
+        }
+        .seats-warning { font-size: .68rem; padding: 3px 8px; }
+
+        /* Results header */
+        .results-row-1 { gap: 6px; }
+        .route-display { font-size: 1.1rem; width: 100%; }
+        .rh-pill { font-size: .68rem; padding: 3px 9px; }
+        .visible-count { font-size: .7rem; }
+
+        /* No results */
+        .no-results { padding: 50px 20px; }
+        .no-results h3 { font-size: 1.4rem; }
+
+        /* Popular routes */
+        .popular-wrap { padding: 0 14px; margin: 40px auto 60px; }
+        .popular-heading { font-size: 1.5rem; }
+        .popular-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+        .popular-card { padding: 16px 14px; }
+        .popular-card .pr-cities { font-size: .9rem; }
+    }
+
+    @media (max-width: 380px) {
+        .fc-pricing { flex-direction: column; align-items: flex-start; }
+        .book-btn { width: 100%; }
+        .popular-grid { grid-template-columns: 1fr; }
     }
     </style>
 </head>
@@ -1104,35 +1271,10 @@ $total_passengers = $adults + $children;
                     </span>
                     <i class="fas fa-chevron-down" style="font-size:.7rem; color:var(--ink-4)"></i>
                 </div>
-                <div class="pax-dropdown" id="paxDropdown">
-                    <div class="pax-row">
-                        <div><div class="pax-type">Adults</div><div class="pax-sub">18 years and above</div></div>
-                        <div class="pax-counter">
-                            <button type="button" onclick="changePax('adults',-1)">−</button>
-                            <span id="adultsDisplay"><?= $adults ?></span>
-                            <button type="button" onclick="changePax('adults',1)">+</button>
-                        </div>
-                    </div>
-                    <div class="pax-row">
-                        <div><div class="pax-type">Children</div><div class="pax-sub">Under 18 years</div></div>
-                        <div class="pax-counter">
-                            <button type="button" onclick="changePax('children',-1)">−</button>
-                            <span id="childrenDisplay"><?= $children ?></span>
-                            <button type="button" onclick="changePax('children',1)">+</button>
-                        </div>
-                    </div>
-                    <div class="pax-class-row">
-                        <label class="pax-class-opt <?= $class==='Economy'?'active':'' ?>">
-                            <input type="radio" name="class" value="Economy" <?= $class==='Economy'?'checked':'' ?> onchange="syncClass()"> Economy
-                        </label>
-                        <label class="pax-class-opt <?= $class==='Business'?'active':'' ?>">
-                            <input type="radio" name="class" value="Business" <?= $class==='Business'?'checked':'' ?> onchange="syncClass()"> Business
-                        </label>
-                    </div>
-                    <input type="hidden" name="adults"   id="adultsHidden"   value="<?= $adults ?>">
-                    <input type="hidden" name="children" id="childrenHidden" value="<?= $children ?>">
-                    <button type="button" class="pax-done" onclick="togglePax()">Done ✓</button>
-                </div>
+                <!-- hidden inputs stay inside the form -->
+                <input type="hidden" name="adults"   id="adultsHidden"   value="<?= $adults ?>">
+                <input type="hidden" name="children" id="childrenHidden" value="<?= $children ?>">
+                <input type="hidden" name="class"    id="classHidden"    value="<?= htmlspecialchars($class) ?>">
             </div>
 
             <button type="submit" class="search-btn" id="searchBtn">
@@ -1346,9 +1488,9 @@ $total_passengers = $adults + $children;
 
             <?php if (!empty($flight['image'])): ?>
                 <img class="fc-img" src="upload/<?= htmlspecialchars($flight['image']) ?>" alt="Flight"
-                     style="<?= ($seats_left<=5&&$seats_left>0)?'margin-top:28px':'' ?>">
+                     style="<?= ($seats_left<=5&&$seats_left>0)?'padding-top:28px':'' ?>">
             <?php else: ?>
-                <div class="fc-img-placeholder" style="<?= ($seats_left<=5&&$seats_left>0)?'margin-top:28px':'' ?>">✈</div>
+                <div class="fc-img-placeholder" style="<?= ($seats_left<=5&&$seats_left>0)?'padding-top:28px':'' ?>">✈</div>
             <?php endif; ?>
 
             <div class="fc-body">
@@ -1513,17 +1655,49 @@ function toggleReturn(r) {
     document.getElementById('returnDate').required = r.value==='return';
 }
 
-/* PASSENGER DROPDOWN */
+/* PASSENGER DROPDOWN — body-level fixed positioning */
 let adults = <?= $adults ?>, children = <?= $children ?>;
+
+function _paxPosition() {
+    const dd = document.getElementById('paxDropdown');
+    const tr = document.getElementById('paxTrigger');
+    if (!dd || !tr) return;
+    const rect = tr.getBoundingClientRect();
+    const ddW  = Math.max(rect.width, 300);
+    // Always show below the trigger
+    dd.style.top = (rect.bottom + 8) + 'px';
+    let left = rect.left;
+    if (left + ddW > window.innerWidth - 8) left = window.innerWidth - ddW - 8;
+    dd.style.left  = Math.max(8, left) + 'px';
+    dd.style.width = ddW + 'px';
+}
+
 function togglePax() {
-    const dd = document.getElementById('paxDropdown'), tr = document.getElementById('paxTrigger');
-    dd.classList.toggle('open'); tr.classList.toggle('open');
+    const dd = document.getElementById('paxDropdown');
+    const tr = document.getElementById('paxTrigger');
+    if (!dd || !tr) return;
+    const isOpen = dd.style.display === 'block';
+    if (isOpen) {
+        dd.style.display = 'none';
+        tr.classList.remove('open');
+        // Remove extra space
+        document.querySelector('.hero').style.paddingBottom = '';
+    } else {
+        dd.style.display = 'block';
+        _paxPosition();
+        tr.classList.add('open');
+        // Push hero down so dropdown doesn't cover content below
+        const ddH = dd.offsetHeight || 340;
+        const heroEl = document.querySelector('.hero');
+        const currentPb = parseInt(getComputedStyle(heroEl).paddingBottom) || 120;
+        heroEl.style.paddingBottom = (currentPb + ddH + 20) + 'px';
+    }
 }
 function changePax(t, d) {
     if (t==='adults')   adults   = Math.max(1, Math.min(9, adults   + d));
     else                children = Math.max(0, Math.min(9, children + d));
-    document.getElementById(t+'Display').textContent  = t==='adults'?adults:children;
-    document.getElementById(t+'Hidden').value         = t==='adults'?adults:children;
+    document.getElementById(t+'Display').textContent = t==='adults' ? adults : children;
+    document.getElementById(t+'Hidden').value        = t==='adults' ? adults : children;
     syncPaxSummary();
 }
 function syncClass() {
@@ -1533,18 +1707,31 @@ function syncClass() {
     syncPaxSummary();
 }
 function syncPaxSummary() {
-    const cls = document.querySelector('input[name="class"]:checked')?.value || 'Economy';
+    const cls = document.querySelector('#paxDropdown input[name="class"]:checked')?.value || 'Economy';
+    const hi = document.getElementById('classHidden');
+    if (hi) hi.value = cls;
     let s = adults + ' Adult' + (adults>1?'s':'');
     if (children>0) s += ', '+children+' Child'+(children>1?'ren':'');
     s += ' · ' + cls;
     document.getElementById('paxSummary').textContent = s;
 }
 document.addEventListener('click', e => {
-    if (!e.target.closest('.pax-wrap')) {
-        document.getElementById('paxDropdown')?.classList.remove('open');
-        document.getElementById('paxTrigger')?.classList.remove('open');
+    if (!e.target.closest('#paxDropdown') && !e.target.closest('#paxTrigger')) {
+        const dd = document.getElementById('paxDropdown');
+        const tr = document.getElementById('paxTrigger');
+        if (dd && dd.style.display === 'block') {
+            dd.style.display = 'none';
+            document.querySelector('.hero').style.paddingBottom = '';
+        }
+        if (tr) tr.classList.remove('open');
     }
 });
+window.addEventListener('scroll', () => {
+    if (document.getElementById('paxDropdown')?.style.display === 'block') _paxPosition();
+}, { passive: true });
+window.addEventListener('resize', () => {
+    if (document.getElementById('paxDropdown')?.style.display === 'block') _paxPosition();
+}, { passive: true });
 
 /* STICKY BAR */
 const heroEl = document.querySelector('.hero');
@@ -1654,11 +1841,51 @@ function quickSearch(from, to) {
 }
 
 /* MOBILE FILTER BTN */
-if (window.innerWidth <= 900) {
-    const mfb = document.querySelector('.mobile-filter-btn');
-    if (mfb) mfb.style.display = 'flex';
-}
+const mfb = document.querySelector('.mobile-filter-btn');
+if (mfb) mfb.style.display = 'flex';
 </script>
+
+<!-- PAX DROPDOWN — body-level so it's never clipped by overflow:hidden -->
+<div class="pax-dropdown" id="paxDropdown">
+    <div class="pax-row">
+        <div><div class="pax-type">Adults</div><div class="pax-sub">18 years and above</div></div>
+        <div class="pax-counter">
+            <button type="button" onclick="changePax('adults',-1)">−</button>
+            <span id="adultsDisplay"><?= $adults ?></span>
+            <button type="button" onclick="changePax('adults',1)">+</button>
+        </div>
+    </div>
+    <div class="pax-row">
+        <div><div class="pax-type">Children</div><div class="pax-sub">Under 18 years</div></div>
+        <div class="pax-counter">
+            <button type="button" onclick="changePax('children',-1)">−</button>
+            <span id="childrenDisplay"><?= $children ?></span>
+            <button type="button" onclick="changePax('children',1)">+</button>
+        </div>
+    </div>
+    <span class="pax-class-label">Cabin Class</span>
+    <div class="pax-class-row">
+        <label class="pax-class-opt <?= $class==='Economy'?'active':'' ?>">
+            <input type="radio" name="class" value="Economy" <?= $class==='Economy'?'checked':'' ?> onchange="syncClass()">
+            <span class="cls-icon">🪑</span>
+            <span class="cls-name">Economy</span>
+            <span class="cls-sub">Standard</span>
+        </label>
+        <label class="pax-class-opt <?= $class==='Business'?'active':'' ?>">
+            <input type="radio" name="class" value="Business" <?= $class==='Business'?'checked':'' ?> onchange="syncClass()">
+            <span class="cls-icon">💼</span>
+            <span class="cls-name">Business</span>
+            <span class="cls-sub">Premium</span>
+        </label>
+        <label class="pax-class-opt <?= $class==='First Class'?'active':'' ?>">
+            <input type="radio" name="class" value="First Class" <?= $class==='First Class'?'checked':'' ?> onchange="syncClass()">
+            <span class="cls-icon">👑</span>
+            <span class="cls-name">First</span>
+            <span class="cls-sub">Luxury</span>
+        </label>
+    </div>
+    <button type="button" class="pax-done" onclick="togglePax()">Done ✓</button>
+</div>
 
 </body>
 </html>

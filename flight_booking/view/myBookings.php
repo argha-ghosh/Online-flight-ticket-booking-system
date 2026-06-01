@@ -241,15 +241,83 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
     .sub-header .sh-badge{display:none}
     .sh-icon{width:38px;height:38px;font-size:1rem}
     .sh-text h2{font-size:1rem}
-    .page-wrap{padding:16px 14px 100px;gap:18px}
+    .page-wrap{padding:16px 14px 100px;gap:14px}
     .back-bar{padding:12px 14px 0}
     .mobile-nav{display:block}
     .sidebar{display:none}
-    .stats-row{grid-template-columns:repeat(3,1fr)}
-    .bp-body{flex-wrap:wrap}
-    .bp-right{min-width:100%;padding-left:0;padding-top:14px;flex-direction:row;align-items:center;justify-content:space-between;border-top:1px solid var(--border-2)}
-    .bp-img{width:70px}
-    .bp-iata{font-size:1.3rem}
+
+    /* Stats row */
+    .stats-row{grid-template-columns:repeat(3,1fr);gap:8px}
+    .stat-card{padding:14px 10px;border-radius:12px}
+    .stat-card .sc-n{font-size:1.5rem}
+    .stat-card .sc-l{font-size:.6rem}
+
+    /* Filter bar */
+    .filter-bar{padding:10px 12px;gap:10px}
+    .filter-tabs{gap:5px}
+    .ftab{padding:6px 12px;font-size:.75rem}
+    .result-count{font-size:.68rem}
+
+    /* Booking card — full stack */
+    .bp-card{flex-direction:column;border-radius:16px;margin-bottom:14px}
+    .bp-stripe{width:100%;height:4px;flex-shrink:0}
+    .bp-img{
+        width:100%;height:120px;
+        border-right:none;border-bottom:1px solid var(--border-2);
+        font-size:2rem
+    }
+    .bp-img img{width:100%;height:100%;object-fit:cover}
+    .bp-body{
+        flex-direction:column;
+        padding:14px 14px 0;
+        gap:0
+    }
+    .bp-flight{padding-right:0}
+    .bp-notch{display:none}
+
+    /* Route */
+    .bp-iata{font-size:1.4rem}
+    .bp-route{gap:10px;margin-bottom:10px}
+    .bp-dur{font-size:.62rem}
+
+    /* Times */
+    .bp-times{padding:6px 10px;gap:8px;margin-bottom:10px}
+    .bp-tb b{font-size:.8rem}
+    .bp-tb span{font-size:.58rem}
+
+    /* Tags */
+    .bp-tags{gap:5px}
+    .bp-tag{font-size:.63rem;padding:2px 8px}
+    .bp-fname{font-size:.75rem;margin-bottom:8px}
+    .bp-ref{font-size:.62rem;margin-bottom:8px}
+
+    /* Right section — horizontal strip */
+    .bp-right{
+        min-width:100%;
+        padding:12px 14px;
+        flex-direction:row;
+        align-items:center;
+        justify-content:space-between;
+        flex-wrap:wrap;
+        gap:10px;
+        border-top:1px solid var(--border-2);
+        margin-top:12px
+    }
+    .bp-price-wrap{text-align:left}
+    .bp-price{font-size:1.5rem}
+    .bp-price-lbl{font-size:.55rem}
+    .bp-price-sub{font-size:.6rem}
+    .bp-badge{font-size:.7rem;padding:4px 12px}
+    .bp-actions{gap:6px}
+    .btn-view,.btn-cancel{padding:8px 14px;font-size:.75rem}
+}
+
+@media(max-width:420px){
+    .stats-row{grid-template-columns:1fr 1fr}
+    .stats-row .stat-card:first-child{grid-column:1/-1}
+    .bp-right{flex-direction:column;align-items:flex-start}
+    .bp-actions{width:100%;justify-content:stretch}
+    .btn-view,.btn-cancel{flex:1;text-align:center}
 }
 </style>
 </head>
