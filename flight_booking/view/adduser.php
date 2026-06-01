@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . "/../config/base_url.php";
 include_once("../model/db_conn.php");
@@ -109,6 +109,7 @@ if ($uq) while ($r = $uq->fetch_assoc()) $users[] = $r;
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Add User — GoZayan Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -522,6 +523,7 @@ body {
 
 /* ─── USERS TABLE ───────────────────────────────── */
 .users-panel { margin-top: 28px; }
+.table-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .users-table {
     width: 100%;
@@ -586,6 +588,19 @@ body {
     .sidebar { grid-template-columns: 1fr; }
     .page { padding: 24px 16px 60px; }
     .panel-body { padding: 18px; }
+}
+@media (max-width: 480px) {
+    .page-heading { flex-direction: column; gap: 8px; }
+    .page-heading h1 { font-size: 1.5rem; }
+    .users-table { font-size: 12px; }
+    .users-table th, .users-table td { padding: 8px 10px; }
+    /* Hide less important columns on very small screens */
+    .users-table th:nth-child(4),
+    .users-table td:nth-child(4),
+    .users-table th:nth-child(5),
+    .users-table td:nth-child(5) { display: none; }
+    .form-actions { flex-direction: column; }
+    .btn { width: 100%; justify-content: center; }
 }
 </style>
 
@@ -828,6 +843,7 @@ body {
             <?php if (empty($users)): ?>
                 <div class="empty-state">No users have been added yet.</div>
             <?php else: ?>
+            <div class="table-scroll-wrap">
             <table class="users-table">
                 <thead>
                     <tr>
@@ -863,6 +879,7 @@ body {
                 <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
             <?php endif; ?>
         </div>
     </div>

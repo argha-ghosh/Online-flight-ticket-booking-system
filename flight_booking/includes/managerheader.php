@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -25,6 +25,7 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoZayan | Manager</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
@@ -118,8 +119,23 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
         .mgr-trigger .m-name  { color: white; font-size: 0.88rem; font-weight: 600; }
         .mgr-trigger .m-arrow { color: white; font-size: 0.65rem; opacity: 0.7; }
 
+        /* ── Mobile Bottom Nav ── */
+        .mgr-mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:#0d1b3e;border-top:2px solid rgba(11,114,230,.4);padding:8px 0 env(safe-area-inset-bottom,8px);box-shadow:0 -4px 20px rgba(0,0,0,.35)}
+        .mgr-mobile-nav-inner{display:flex;justify-content:space-around;align-items:center;max-width:500px;margin:0 auto}
+        .mgr-mob-link{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:rgba(255,255,255,.5);font-size:.6rem;font-weight:600;padding:4px 6px;border-radius:8px;transition:color .18s}
+        .mgr-mob-link span.mob-icon{font-size:1.1rem}
+        .mgr-mob-link.active,.mgr-mob-link:hover{color:#60a5fa}
+
         @media screen and (max-width: 768px) {
+            header { padding: 0 12px; height: 50px; }
+            header h1 { font-size: .95rem; }
             nav > a { display: none; }
+            .mgr-trigger .m-name { display: none; }
+            .mgr-trigger { padding: 5px 8px; }
+            .dropdown-content { right: -8px; min-width: 200px; top: 42px; }
+            .notif-dropdown { min-width: 260px; right: -40px; }
+            .mgr-mobile-nav { display: block; }
+            body { padding-bottom: 70px; }
         }
         /* Notification Bell */
         .notif-bell { position: relative; cursor: pointer; margin-right: 20px; }
@@ -294,4 +310,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Refresh every 30 seconds
     setInterval(fetchNotifications, 30000);
 });
+</script>
+
+<!-- Manager Mobile Bottom Nav -->
+<nav class="mgr-mobile-nav"><div class="mgr-mobile-nav-inner">
+    <a href="<?= BASE_URL ?>/view/managerdemo.php" class="mgr-mob-link"><span class="mob-icon">🛫</span>Flights</a>
+    <a href="<?= BASE_URL ?>/view/manageSeatupdatePrice.php" class="mgr-mob-link"><span class="mob-icon">💺</span>Seats</a>
+    <a href="<?= BASE_URL ?>/view/viewmanagerprofile.php" class="mgr-mob-link"><span class="mob-icon">👤</span>Profile</a>
+    <a href="<?= BASE_URL ?>/view/changeManagerPass.php" class="mgr-mob-link"><span class="mob-icon">🔒</span>Password</a>
+    <a href="<?= BASE_URL ?>/logout.php" class="mgr-mob-link"><span class="mob-icon">🚪</span>Logout</a>
+</div></nav>
+
+<script>
+// Highlight active mobile nav link
+(function(){
+    const path = window.location.pathname;
+    document.querySelectorAll('.mgr-mob-link').forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && path.includes(href.split('/view/')[1]?.split('.php')[0] || '___')) {
+            link.classList.add('active');
+        }
+    });
+})();
 </script>

@@ -85,18 +85,26 @@ unset($_SESSION['mgr_msg'], $_SESSION['mgr_msg_type']);
 
 // Fetch data
 $flights   = [];
-$res = $conn->query("SELECT * FROM flights ORDER BY id DESC");
+$res = $conn->query("SELECT * FROM flights ORDER BY flight_code ASC, FIELD(flight_class,'Economy','Business','First Class')");
 if ($res) while ($r = $res->fetch_assoc()) $flights[] = $r;
+
+// Group flights by code
+$flight_groups = [];
+foreach ($flights as $f) {
+    $flight_groups[$f['flight_code']][] = $f;
+}
 
 $schedules = [];
 $res2 = $conn->query("SELECT * FROM schedule ORDER BY flight_code ASC");
 if ($res2) while ($r = $res2->fetch_assoc()) $schedules[] = $r;
 
-// Stats
-$total_flights   = count($flights);
+// Stats — count unique codes as "flights"
+$total_flights   = count($flight_groups);
 $total_schedules = count($schedules);
-$active_flights  = count(array_filter($flights, fn($f) => ($f['status'] ?? 'active') === 'active'));
-$avg_price       = $total_flights ? array_sum(array_column($flights, 'price')) / $total_flights : 0;
+$active_flights  = count(array_filter($flight_groups, fn($rows) =>
+    count(array_filter($rows, fn($f) => ($f['status'] ?? 'active') === 'active')) > 0
+));
+$avg_price = count($flights) ? array_sum(array_column($flights, 'price')) / count($flights) : 0;
 
 include("../includes/managerheader.php");
 ?>
@@ -214,8 +222,30 @@ table.mgr-table { width:100%; border-collapse:collapse; font-size:0.86rem; }
 .mgr-day { display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:600; color:#0f172a; }
 
 /* Responsive */
-@media (max-width:900px) { .mgr-stats { grid-template-columns:1fr 1fr; } .mgr-wrap { padding:16px 14px 40px; } }
-@media (max-width:500px) { .mgr-stats { grid-template-columns:1fr; } .mgr-search-wrap input { width:100%; } }
+@media (max-width:900px) {
+    .mgr-stats { grid-template-columns:1fr 1fr; }
+    .mgr-wrap { padding:16px 14px 80px; }
+    .mgr-topbar { flex-direction:column; align-items:flex-start; gap:10px; }
+    .mgr-search-wrap input { width:100%; }
+    .mgr-sched-grid { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:600px) {
+    .mgr-stats { grid-template-columns:1fr 1fr; }
+    .mgr-stat { padding:14px 12px; gap:10px; }
+    .mgr-stat-icon { width:38px; height:38px; font-size:1.1rem; }
+    .mgr-stat-val { font-size:1.2rem; }
+    .mgr-sched-grid { grid-template-columns:1fr; }
+    .mgr-sched-actions { flex-direction:row; }
+    .mgr-btn-save, .mgr-btn-reset { flex:1; justify-content:center; }
+    .mgr-card-head { flex-direction:column; align-items:flex-start; gap:6px; }
+    /* Hide less critical table columns on mobile */
+    .mgr-table th:nth-child(3), .mgr-table td:nth-child(3),
+    .mgr-table th:nth-child(6), .mgr-table td:nth-child(6),
+    .mgr-table th:nth-child(7), .mgr-table td:nth-child(7) { display:none; }
+}
+@media (max-width:400px) {
+    .mgr-stats { grid-template-columns:1fr; }
+}
 </style>
 
 <div class="mgr-wrap">
@@ -265,72 +295,63 @@ table.mgr-table { width:100%; border-collapse:collapse; font-size:0.86rem; }
     <div class="mgr-card">
         <div class="mgr-card-head">
             <h2>Available Flights</h2>
-            <span class="mgr-badge"><?= $total_flights ?> flights</span>
+            <span class="mgr-badge"><?= count($flight_groups) ?> flight<?= count($flight_groups) !== 1 ? 's' : '' ?></span>
         </div>
-        <div class="mgr-table-wrap">
-            <?php if (empty($flights)): ?>
-                <div class="mgr-empty"><span class="ei">🛫</span><p>No flights found.</p></div>
-            <?php else: ?>
-            <table class="mgr-table" id="mgrFlightsTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Flight</th>
-                        <th>Airline</th>
-                        <th>Route</th>
-                        <th>Time</th>
-                        <th>Duration</th>
-                        <th>Class</th>
-                        <th>Price</th>
-                        <th>Seats</th>
-                        <th>Status</th>
-                        <th>Schedule</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($flights as $i => $f):
-                    $status     = $f['status']      ?? 'active';
-                    $cls        = $f['flight_class'] ?? ($f['seat_class'] ?? 'Economy');
-                    $dep_time   = extractTime($f['departure_time'] ?? '');
-                    $arr_time   = extractTime($f['arrival_time']   ?? '');
-                ?>
-                    <tr data-name="<?= strtolower(htmlspecialchars($f['flight_name'])) ?>"
-                        data-airline="<?= strtolower(htmlspecialchars($f['airline_name'])) ?>"
-                        data-code="<?= strtolower(htmlspecialchars($f['flight_code'])) ?>">
-                        <td style="color:#94a3b8;font-size:0.8rem;"><?= $i+1 ?></td>
-                        <td>
-                            <div style="font-weight:700;color:#0f172a;"><?= htmlspecialchars($f['flight_name']) ?></div>
-                            <div style="font-size:0.75rem;color:#64748b;"><?= htmlspecialchars($f['flight_code']) ?></div>
-                        </td>
-                        <td><?= htmlspecialchars($f['airline_name']) ?></td>
-                        <td>
-                            <div class="mgr-route">
-                                <?= htmlspecialchars($f['departure']) ?>
-                                <span class="arr">→</span>
-                                <?= htmlspecialchars($f['arrival']) ?>
-                            </div>
-                        </td>
-                        <td style="font-size:0.82rem;color:#475569;">
-                            <?= $dep_time ?> – <?= $arr_time ?>
-                        </td>
-                        <td><?= htmlspecialchars($f['duration']) ?></td>
-                        <td><span class="mgr-tag purple"><?= htmlspecialchars($cls) ?></span></td>
-                        <td><span class="mgr-price">$<?= number_format((float)$f['price'], 2) ?></span></td>
-                        <td><?= (int)($f['seat'] ?? $f['total_seats'] ?? 0) ?></td>
-                        <td><span class="mgr-status <?= $status ?>"><?= ucfirst($status) ?></span></td>
-                        <td>
-                            <button class="mgr-btn-edit"
-                                onclick="mgrFillSchedule('<?= htmlspecialchars(addslashes($f['flight_code'])) ?>','<?= htmlspecialchars(addslashes($f['flight_name'])) ?>','<?= htmlspecialchars(addslashes($f['airline_name'])) ?>')">
-                                📅 Schedule
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-            <?php endif; ?>
+        <?php if (empty($flight_groups)): ?>
+            <div class="mgr-empty"><span class="ei">🛫</span><p>No flights found.</p></div>
+        <?php else: ?>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;" id="mgrFlightsContainer">
+        <?php foreach ($flight_groups as $code => $rows):
+            $first = $rows[0];
+            $dep_time = extractTime($first['departure_time'] ?? '');
+            $arr_time = extractTime($first['arrival_time']   ?? '');
+            $searchStr = strtolower($first['flight_name'].' '.$code.' '.$first['departure'].' '.$first['arrival'].' '.$first['airline_name']);
+        ?>
+        <div class="mgr-flight-group" data-search="<?= htmlspecialchars($searchStr) ?>">
+            <!-- Group header -->
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#f8fafc;border:1px solid #e8f0fb;border-radius:12px 12px 0 0;border-bottom:none;flex-wrap:wrap;gap:10px;">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span style="font-family:monospace;font-size:.82rem;font-weight:800;color:#0b72e6;background:#eff6ff;padding:3px 10px;border-radius:20px;border:1px solid #bfdbfe;"><?= htmlspecialchars($code) ?></span>
+                        <span style="font-size:.92rem;font-weight:700;color:#0f172a;"><?= htmlspecialchars($first['flight_name']) ?></span>
+                        <span style="font-size:.78rem;color:#64748b;"><?= htmlspecialchars($first['airline_name']) ?></span>
+                    </div>
+                    <div style="font-size:.78rem;color:#64748b;margin-top:4px;">
+                        🛫 <?= htmlspecialchars($first['departure']) ?> → <?= htmlspecialchars($first['arrival']) ?>
+                        &nbsp;·&nbsp; ⏱️ <?= htmlspecialchars($first['duration']) ?>
+                        &nbsp;·&nbsp; 🕐 <?= $dep_time ?> – <?= $arr_time ?>
+                    </div>
+                </div>
+                <button class="mgr-btn-edit" onclick="mgrFillSchedule('<?= htmlspecialchars(addslashes($code)) ?>','<?= htmlspecialchars(addslashes($first['flight_name'])) ?>','<?= htmlspecialchars(addslashes($first['airline_name'])) ?>')">
+                    📅 Set Schedule
+                </button>
+            </div>
+            <!-- Class rows -->
+            <div style="border:1px solid #e8f0fb;border-radius:0 0 12px 12px;overflow:hidden;">
+            <?php foreach ($rows as $f):
+                $cls    = $f['flight_class'];
+                $status = $f['status'] ?? 'active';
+                $disc   = (float)($f['discount_pct'] ?? 0);
+                $final  = $f['price'] * (1 - $disc / 100);
+                $clsBg  = $cls === 'Economy' ? '#f0fdf4' : ($cls === 'Business' ? '#eff6ff' : '#f5f3ff');
+                $clsClr = $cls === 'Economy' ? '#15803d' : ($cls === 'Business' ? '#1d4ed8' : '#6d28d9');
+                $clsBdr = $cls === 'Economy' ? '#bbf7d0' : ($cls === 'Business' ? '#bfdbfe' : '#ddd6fe');
+            ?>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;">
+                <span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;background:<?= $clsBg ?>;color:<?= $clsClr ?>;border:1px solid <?= $clsBdr ?>;white-space:nowrap;"><?= htmlspecialchars($cls) ?></span>
+                <span style="font-size:.95rem;font-weight:800;color:#0b72e6;min-width:80px;">$<?= number_format($final, 2) ?></span>
+                <span style="font-size:.78rem;color:#64748b;">
+                    💺 <?= (int)$f['seat'] ?>/<?= (int)$f['total_seats'] ?> seats
+                    <?php if ($disc > 0): ?>&nbsp;<span style="color:#16a34a;font-weight:700;">↓<?= $disc ?>% off</span><?php endif; ?>
+                </span>
+                <span class="mgr-status <?= $status ?>" style="margin-left:auto;"><?= ucfirst($status) ?></span>
+            </div>
+            <?php endforeach; ?>
+            </div>
         </div>
-    </div>
+        <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
     <!-- ══ Add / Update Schedule ══ -->
     <div class="mgr-card">
@@ -457,14 +478,11 @@ table.mgr-table { width:100%; border-collapse:collapse; font-size:0.86rem; }
 </div>
 
 <script>
-// Filter flights table
+// Filter flights — now grouped
 function mgrFilter(q) {
     q = q.toLowerCase().trim();
-    document.querySelectorAll('#mgrFlightsTable tbody tr').forEach(row => {
-        const match = !q || row.dataset.name.includes(q)
-                         || row.dataset.airline.includes(q)
-                         || row.dataset.code.includes(q);
-        row.style.display = match ? '' : 'none';
+    document.querySelectorAll('#mgrFlightsContainer .mgr-flight-group').forEach(g => {
+        g.style.display = (!q || g.dataset.search.includes(q)) ? '' : 'none';
     });
 }
 

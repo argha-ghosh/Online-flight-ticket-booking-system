@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -16,6 +16,7 @@ $admin_email = $_SESSION['email'] ?? '';
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoZayan | Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
@@ -168,9 +169,22 @@ $admin_email = $_SESSION['email'] ?? '';
             justify-content: center; font-size: 0.78rem;
         }
 
+        /* ── Mobile Bottom Nav ── */
+        .admin-mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:#0d1b3e;border-top:2px solid rgba(11,114,230,.4);padding:8px 0 env(safe-area-inset-bottom,8px);box-shadow:0 -4px 20px rgba(0,0,0,.35)}
+        .admin-mobile-nav-inner{display:flex;justify-content:space-around;align-items:center;max-width:500px;margin:0 auto}
+        .adm-mob-link{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:rgba(255,255,255,.5);font-size:.6rem;font-weight:600;padding:4px 6px;border-radius:8px;transition:color .18s}
+        .adm-mob-link i,.adm-mob-link span.mob-icon{font-size:1.1rem}
+        .adm-mob-link.active,.adm-mob-link:hover{color:#60a5fa}
+
         @media screen and (max-width: 768px) {
+            header { padding: 0 12px; height: 50px; }
+            header h1 { font-size: .95rem; }
             nav > a { display: none; }
-            header { padding: 0 16px; }
+            .admin-trigger .a-label { display: none; }
+            .admin-trigger { padding: 5px 8px; }
+            .dropdown-content { right: -8px; min-width: 200px; top: 42px; }
+            .admin-mobile-nav { display: block; }
+            body { padding-bottom: 70px; }
         }
     </style>
 </head>
@@ -215,4 +229,25 @@ window.onclick = function(e) {
         document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
     }
 }
+</script>
+
+<!-- Admin Mobile Bottom Nav -->
+<nav class="admin-mobile-nav"><div class="admin-mobile-nav-inner">
+    <a href="<?= BASE_URL ?>/view/adminAnalytics.php" class="adm-mob-link"><span class="mob-icon">📊</span>Analytics</a>
+    <a href="<?= BASE_URL ?>/view/addAirline.php" class="adm-mob-link"><span class="mob-icon">✈</span>Airlines</a>
+    <a href="<?= BASE_URL ?>/view/addFlight.php" class="adm-mob-link"><span class="mob-icon">🛫</span>Flights</a>
+    <a href="<?= BASE_URL ?>/view/adduser.php" class="adm-mob-link"><span class="mob-icon">👤</span>Users</a>
+    <a href="<?= BASE_URL ?>/view/adminprofile.php" class="adm-mob-link"><span class="mob-icon">⚙️</span>Profile</a>
+</div></nav>
+
+<script>
+// Highlight active mobile nav link
+(function(){
+    const path = window.location.pathname;
+    document.querySelectorAll('.adm-mob-link').forEach(link => {
+        if (path.includes(link.getAttribute('href').split('/view/')[1]?.split('.php')[0])) {
+            link.classList.add('active');
+        }
+    });
+})();
 </script>

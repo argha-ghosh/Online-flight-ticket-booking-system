@@ -172,8 +172,23 @@ include("../includes/managerheader.php");
 .mp-btn-save:hover { opacity:0.9; transform:translateY(-1px); }
 
 /* Responsive */
-@media (max-width:900px) { .mp-layout { grid-template-columns:1fr; } .mp-avatar-card { position:static; } }
-@media (max-width:600px) { .mp-page { padding:16px 14px 40px; } .mp-grid, .mp-grid.three { grid-template-columns:1fr; } .mp-footer { flex-direction:column-reverse; } }
+@media (max-width:900px) {
+    .mp-layout { grid-template-columns:1fr; }
+    .mp-avatar-card { position:static; }
+}
+@media (max-width:600px) {
+    .mp-page { padding:16px 14px 80px; }
+    .mp-titlebar { gap:10px; }
+    .mp-titlebar-icon { width:42px; height:42px; font-size:1.2rem; }
+    .mp-titlebar h1 { font-size:1.15rem; }
+    .mp-grid, .mp-grid.three { grid-template-columns:1fr; }
+    .mp-details-header { flex-direction:column; align-items:flex-start; gap:10px; }
+    .mp-edit-btn { width:100%; justify-content:center; }
+    .mp-details-body { padding:18px 16px; }
+    .mp-footer { flex-direction:column-reverse; }
+    .mp-btn-cancel, .mp-btn-save { width:100%; justify-content:center; }
+    .mp-stats { grid-template-columns:1fr 1fr; }
+}
 </style>
 
 <div class="mp-page">

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
@@ -64,6 +64,7 @@ include("../includes/header.php");
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GoZayan · Booking #<?= $ref ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -227,9 +228,36 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .btn-outline{background:transparent;color:var(--navy);border:1.5px solid var(--border)}
 .btn-outline:hover{border-color:var(--navy);background:var(--cream-2)}
 
-/* Responsive */
-@media(max-width:1100px){.page-wrap{grid-template-columns:256px 1fr}.right-col{display:none}}
-@media(max-width:780px){.page-wrap{grid-template-columns:1fr;padding:18px 16px 80px}.sidebar{position:static}.bp-fields-grid{grid-template-columns:repeat(2,1fr);gap:16px}.bp-body{grid-template-columns:1fr;gap:24px}.bp-head{padding:22px 22px 26px}.bp-body{padding:22px 22px 26px}.bp-payment{padding:16px 22px;gap:20px}.bp-iata{font-size:2.8rem}.price-amount{font-size:2.1rem}.right-col{display:flex}.sub-header{padding:14px 20px}}
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:var(--navy);border-top:2px solid rgba(201,168,76,.3);padding:8px 0 env(safe-area-inset-bottom,8px);box-shadow:0 -4px 20px rgba(8,23,46,.3)}
+.mobile-nav-inner{display:flex;justify-content:space-around;align-items:center;max-width:500px;margin:0 auto}
+.mob-link{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:rgba(255,255,255,.55);font-size:.62rem;font-weight:600;padding:4px 8px;border-radius:8px;transition:color .18s}
+.mob-link i{font-size:1.1rem}
+.mob-link.active,.mob-link:hover{color:var(--gold-lt)}
+
+@media(max-width:1100px){
+    .page-wrap{grid-template-columns:1fr;padding:20px 20px 100px}
+    .sidebar{position:static;display:none}
+    .right-col{display:none}
+}
+@media(max-width:780px){
+    .sub-header{padding:14px 16px;gap:14px}
+    .sub-header .sh-badge,.sub-header .sh-ref{display:none}
+    .sh-icon,.sh-check{width:38px;height:38px;font-size:1rem}
+    .sh-text h2{font-size:1rem}
+    .page-wrap{padding:16px 14px 100px;gap:18px}
+    .back-bar{padding:12px 14px 0}
+    .mobile-nav{display:block}
+    .sidebar{display:none}
+    .bp-fields-grid{grid-template-columns:repeat(2,1fr)}
+    .bp-body{grid-template-columns:1fr}
+    .bp-iata{font-size:2.4rem}
+    .bp-head{padding:22px 18px 26px}
+    .bp-body{padding:22px 18px 26px}
+    .bp-payment{padding:16px 18px;gap:20px}
+    .price-amount{font-size:2.1rem}
+    .right-col{display:flex}
+}
 @media print{.sub-header,.back-bar,.sidebar,.right-col,.bp-tear,header,footer{display:none!important}*,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{background:#fff!important;padding-top:0!important}.page-wrap{display:block!important;padding:0!important}.bp{box-shadow:none!important;border-radius:0!important}}
 </style>
 </head>
@@ -397,6 +425,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
 });
 </script>
+<nav class="mobile-nav"><div class="mobile-nav-inner">
+    <a href="userhome.php" class="mob-link"><i class="fas fa-house"></i>Home</a>
+    <a href="searchflights.php" class="mob-link"><i class="fas fa-magnifying-glass"></i>Search</a>
+    <a href="myBookings.php" class="mob-link active"><i class="fas fa-ticket"></i>Bookings</a>
+    <a href="passengerProfile.php" class="mob-link"><i class="fas fa-user"></i>Profile</a>
+    <a href="/flight_booking/logout.php" class="mob-link"><i class="fas fa-right-from-bracket"></i>Logout</a>
+</div></nav>
+
 </body>
 </html>
 <?php include("../includes/footer.php"); ?>

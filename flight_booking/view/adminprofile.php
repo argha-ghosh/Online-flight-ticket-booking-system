@@ -223,10 +223,17 @@ select.ap-input[disabled] { opacity:0.7; cursor:default; }
     .ap-avatar-card { position:static; }
 }
 @media (max-width:600px) {
-    .ap-page { padding:16px 14px 40px; }
+    .ap-page { padding:16px 14px 80px; }
+    .ap-titlebar { gap: 10px; }
+    .ap-titlebar-icon { width: 42px; height: 42px; font-size: 1.2rem; }
+    .ap-titlebar h1 { font-size: 1.15rem; }
     .ap-grid, .ap-grid.three { grid-template-columns:1fr; }
+    .ap-details-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .ap-edit-btn { width: 100%; justify-content: center; }
+    .ap-details-body { padding: 18px 16px; }
     .ap-footer { flex-direction:column-reverse; }
     .ap-btn-cancel, .ap-btn-save { width:100%; justify-content:center; }
+    .ap-stats { grid-template-columns: 1fr 1fr; }
 }
 </style>
 

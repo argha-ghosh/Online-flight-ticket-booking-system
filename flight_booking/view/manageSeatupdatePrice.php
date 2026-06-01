@@ -40,16 +40,22 @@ $flash_msg  = $_SESSION['sp_msg']      ?? '';
 $flash_type = $_SESSION['sp_msg_type'] ?? '';
 unset($_SESSION['sp_msg'], $_SESSION['sp_msg_type']);
 
-// Fetch flights
+// Fetch flights — grouped by code
 $flights = [];
-$res = $conn->query("SELECT * FROM flights ORDER BY id DESC");
+$res = $conn->query("SELECT * FROM flights ORDER BY flight_code ASC, FIELD(flight_class,'Economy','Business','First Class')");
 if ($res) while ($r = $res->fetch_assoc()) $flights[] = $r;
 
-// Stats
-$total_flights   = count($flights);
+$flight_groups = [];
+foreach ($flights as $f) $flight_groups[$f['flight_code']][] = $f;
+
+// Stats — count unique flights by flight_code, not by row
+$total_flights   = count($flight_groups);
 $total_seats     = array_sum(array_column($flights, 'seat'));
-$avg_price       = $total_flights ? array_sum(array_column($flights, 'price')) / $total_flights : 0;
-$active_flights  = count(array_filter($flights, fn($f) => ($f['status'] ?? 'active') === 'active'));
+$avg_price       = count($flights) ? array_sum(array_column($flights, 'price')) / count($flights) : 0;
+// A flight is "active" if at least one of its class rows is active
+$active_flights  = count(array_filter($flight_groups, fn($rows) =>
+    count(array_filter($rows, fn($f) => ($f['status'] ?? 'active') === 'active')) > 0
+));
 
 include("../includes/managerheader.php");
 ?>
@@ -254,12 +260,25 @@ table.sp-table {
 /* Responsive */
 @media (max-width:900px) {
     .sp-stats { grid-template-columns:1fr 1fr; }
-    .sp-wrap { padding:16px 14px 40px; }
-}
-@media (max-width:500px) {
-    .sp-stats { grid-template-columns:1fr; }
+    .sp-wrap { padding:16px 14px 80px; }
+    .sp-topbar { flex-direction:column; align-items:flex-start; gap:10px; }
     .sp-search-wrap input { width:100%; }
-    .sp-topbar { flex-direction:column; align-items:flex-start; }
+}
+@media (max-width:600px) {
+    .sp-stats { grid-template-columns:1fr 1fr; }
+    .sp-stat { padding:14px 12px; gap:10px; }
+    .sp-stat-icon { width:38px; height:38px; font-size:1.1rem; }
+    .sp-stat-val { font-size:1.2rem; }
+    .sp-edit-grid { grid-template-columns:1fr 1fr; }
+    .sp-edit-actions { flex-direction:row; }
+    .sp-card-head { flex-direction:column; align-items:flex-start; gap:6px; }
+    /* Hide less critical columns on mobile */
+    .sp-table th:nth-child(3), .sp-table td:nth-child(3),
+    .sp-table th:nth-child(7), .sp-table td:nth-child(7) { display:none; }
+}
+@media (max-width:400px) {
+    .sp-stats { grid-template-columns:1fr; }
+    .sp-edit-grid { grid-template-columns:1fr; }
 }
 </style>
 
@@ -322,126 +341,95 @@ table.sp-table {
     <div class="sp-card">
         <div class="sp-card-head">
             <h2>All Flights</h2>
-            <span class="sp-badge"><?= $total_flights ?> flights</span>
+            <span class="sp-badge"><?= $total_flights ?> flight<?= $total_flights !== 1 ? 's' : '' ?></span>
         </div>
 
         <div class="sp-table-wrap">
-            <?php if (empty($flights)): ?>
+            <?php if (empty($flight_groups)): ?>
                 <div class="sp-empty">
                     <span class="sp-empty-icon">🛫</span>
                     <p>No flights found. Add flights first.</p>
                 </div>
             <?php else: ?>
-            <table class="sp-table" id="spTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Flight</th>
-                        <th>Airline</th>
-                        <th>Route</th>
-                        <th>Class</th>
-                        <th>Price</th>
-                        <th>Discount</th>
-                        <th>Seats</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($flights as $i => $f):
-                    $status      = $f['status']       ?? 'active';
-                    $seat_class  = $f['seat_class']    ?? ($f['flight_class'] ?? 'Economy');
-                    $discount    = (float)($f['discount_pct'] ?? 0);
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;" id="spGroupsContainer">
+            <?php foreach ($flight_groups as $code => $rows):
+                $first = $rows[0];
+                $searchStr = strtolower($first['flight_name'].' '.$code.' '.$first['departure'].' '.$first['arrival'].' '.$first['airline_name']);
+            ?>
+            <div class="sp-flight-group" data-search="<?= htmlspecialchars($searchStr) ?>">
+                <!-- Group header -->
+                <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:#f8fafc;border:1px solid #e8f0fb;border-radius:12px 12px 0 0;border-bottom:none;flex-wrap:wrap;">
+                    <span style="font-family:monospace;font-size:.82rem;font-weight:800;color:#0b72e6;background:#eff6ff;padding:3px 10px;border-radius:20px;border:1px solid #bfdbfe;"><?= htmlspecialchars($code) ?></span>
+                    <span style="font-size:.9rem;font-weight:700;color:#0f172a;"><?= htmlspecialchars($first['flight_name']) ?></span>
+                    <span style="font-size:.78rem;color:#64748b;">
+                        <?= htmlspecialchars($first['departure']) ?> → <?= htmlspecialchars($first['arrival']) ?>
+                        &nbsp;·&nbsp; <?= htmlspecialchars($first['airline_name']) ?>
+                    </span>
+                </div>
+                <!-- Class rows -->
+                <div style="border:1px solid #e8f0fb;border-radius:0 0 12px 12px;overflow:hidden;">
+                <?php foreach ($rows as $f):
+                    $status     = $f['status']    ?? 'active';
+                    $seat_class = $f['seat_class'] ?? ($f['flight_class'] ?? 'Economy');
+                    $discount   = (float)($f['discount_pct'] ?? 0);
                     $final_price = $f['price'] * (1 - $discount / 100);
+                    $clsBg  = $seat_class === 'Economy' ? '#f0fdf4' : ($seat_class === 'Business' ? '#eff6ff' : '#f5f3ff');
+                    $clsClr = $seat_class === 'Economy' ? '#15803d' : ($seat_class === 'Business' ? '#1d4ed8' : '#6d28d9');
+                    $clsBdr = $seat_class === 'Economy' ? '#bbf7d0' : ($seat_class === 'Business' ? '#bfdbfe' : '#ddd6fe');
                 ?>
-                    <!-- Data row -->
-                    <tr class="sp-data-row" id="row-<?= $f['id'] ?>"
-                        data-name="<?= strtolower(htmlspecialchars($f['flight_name'])) ?>"
-                        data-airline="<?= strtolower(htmlspecialchars($f['airline_name'])) ?>"
-                        data-code="<?= strtolower(htmlspecialchars($f['flight_code'])) ?>">
-                        <td style="color:#94a3b8;font-size:0.8rem;"><?= $i + 1 ?></td>
-                        <td>
-                            <div style="font-weight:700;color:#0f172a;"><?= htmlspecialchars($f['flight_name']) ?></div>
-                            <div style="font-size:0.75rem;color:#64748b;"><?= htmlspecialchars($f['flight_code']) ?></div>
-                        </td>
-                        <td><?= htmlspecialchars($f['airline_name']) ?></td>
-                        <td>
-                            <div class="sp-route">
-                                <span><?= htmlspecialchars($f['departure']) ?></span>
-                                <span class="arr">→</span>
-                                <span><?= htmlspecialchars($f['arrival']) ?></span>
+                <!-- Data row -->
+                <div class="sp-data-row" id="row-<?= $f['id'] ?>" style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;transition:background .15s;">
+                    <span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;background:<?= $clsBg ?>;color:<?= $clsClr ?>;border:1px solid <?= $clsBdr ?>;white-space:nowrap;min-width:90px;text-align:center;"><?= htmlspecialchars($seat_class) ?></span>
+                    <div style="min-width:90px;">
+                        <div class="sp-price">$<?= number_format($final_price, 2) ?></div>
+                        <?php if ($discount > 0): ?><div class="sp-discount">↓<?= $discount ?>% off $<?= number_format($f['price'], 2) ?></div><?php endif; ?>
+                    </div>
+                    <div style="font-size:.82rem;color:#334155;">
+                        💺 <strong><?= (int)($f['seat'] ?? 0) ?></strong>/<?= (int)$f['total_seats'] ?> seats
+                    </div>
+                    <span class="sp-status <?= $status ?>"><?= ucfirst($status) ?></span>
+                    <button class="sp-btn-edit" style="margin-left:auto;" onclick="spOpenEdit(<?= $f['id'] ?>)">✏️ Edit</button>
+                </div>
+                <!-- Inline edit row -->
+                <div class="sp-edit-row" id="edit-<?= $f['id'] ?>" style="display:none;background:#f0f7ff;border-bottom:2px solid #0b72e6;padding:16px;">
+                    <form method="POST" action="<?= BASE_URL ?>/view/manageSeatupdatePrice.php">
+                        <input type="hidden" name="flight_id" value="<?= $f['id'] ?>">
+                        <div class="sp-edit-grid">
+                            <div class="sp-ef">
+                                <label>Base Price ($)</label>
+                                <input type="number" step="0.01" min="0" name="price" value="<?= number_format($f['price'], 2, '.', '') ?>" required>
                             </div>
-                        </td>
-                        <td><span class="sp-class"><?= htmlspecialchars($seat_class) ?></span></td>
-                        <td>
-                            <div class="sp-price">$<?= number_format($final_price, 2) ?></div>
-                            <?php if ($discount > 0): ?>
-                                <div class="sp-discount">↓<?= $discount ?>% off $<?= number_format($f['price'], 2) ?></div>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= $discount > 0 ? $discount . '%' : '—' ?></td>
-                        <td><span class="sp-seats"><?= (int)($f['seat'] ?? 0) ?></span></td>
-                        <td><span class="sp-status <?= $status ?>"><?= ucfirst($status) ?></span></td>
-                        <td>
-                            <button class="sp-btn-edit" onclick="spOpenEdit(<?= $f['id'] ?>)">
-                                ✏️ Edit
-                            </button>
-                        </td>
-                    </tr>
-                    <!-- Inline edit row -->
-                    <tr class="sp-edit-row" id="edit-<?= $f['id'] ?>">
-                        <td class="sp-edit-cell" colspan="10">
-                            <form method="POST" action="<?= BASE_URL ?>/view/manageSeatupdatePrice.php">
-                                <input type="hidden" name="flight_id" value="<?= $f['id'] ?>">
-                                <div class="sp-edit-grid">
-                                    <div class="sp-ef">
-                                        <label>Base Price ($)</label>
-                                        <input type="number" step="0.01" min="0" name="price"
-                                               value="<?= number_format($f['price'], 2, '.', '') ?>" required>
-                                    </div>
-                                    <div class="sp-ef">
-                                        <label>Discount (%)</label>
-                                        <input type="number" step="0.1" min="0" max="100" name="discount_pct"
-                                               value="<?= $discount ?>" placeholder="0">
-                                    </div>
-                                    <div class="sp-ef">
-                                        <label>Available Seats</label>
-                                        <input type="number" min="0" name="seat"
-                                               value="<?= (int)($f['seat'] ?? 0) ?>" required>
-                                    </div>
-                                    <div class="sp-ef">
-                                        <label>Seat Class</label>
-                                        <div class="sel-wrap">
-                                            <select name="seat_class">
-                                                <?php foreach (['Economy','Business','First Class'] as $cls): ?>
-                                                    <option value="<?= $cls ?>" <?= $seat_class === $cls ? 'selected' : '' ?>><?= $cls ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="sp-ef">
-                                        <label>Status</label>
-                                        <div class="sel-wrap">
-                                            <select name="status">
-                                                <option value="active"    <?= $status === 'active'    ? 'selected' : '' ?>>✅ Active</option>
-                                                <option value="inactive"  <?= $status === 'inactive'  ? 'selected' : '' ?>>❌ Inactive</option>
-                                                <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>⚠️ Cancelled</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="sp-ef sp-edit-actions">
-                                        <label>&nbsp;</label>
-                                        <button type="submit" name="update_flight" class="sp-btn-save">💾 Save</button>
-                                        <button type="button" class="sp-btn-cancel-edit"
-                                                onclick="spCloseEdit(<?= $f['id'] ?>)">✕</button>
-                                    </div>
+                            <div class="sp-ef">
+                                <label>Discount (%)</label>
+                                <input type="number" step="0.1" min="0" max="100" name="discount_pct" value="<?= $discount ?>" placeholder="0">
+                            </div>
+                            <div class="sp-ef">
+                                <label>Available Seats</label>
+                                <input type="number" min="0" name="seat" value="<?= (int)($f['seat'] ?? 0) ?>" required>
+                            </div>
+                            <div class="sp-ef">
+                                <label>Status</label>
+                                <div class="sel-wrap">
+                                    <select name="status">
+                                        <option value="active"    <?= $status==='active'    ?'selected':'' ?>>✅ Active</option>
+                                        <option value="inactive"  <?= $status==='inactive'  ?'selected':'' ?>>❌ Inactive</option>
+                                        <option value="cancelled" <?= $status==='cancelled' ?'selected':'' ?>>⚠️ Cancelled</option>
+                                    </select>
                                 </div>
-                            </form>
-                        </td>
-                    </tr>
+                            </div>
+                            <div class="sp-ef sp-edit-actions">
+                                <label>&nbsp;</label>
+                                <button type="submit" name="update_flight" class="sp-btn-save">💾 Save</button>
+                                <button type="button" class="sp-btn-cancel-edit" onclick="spCloseEdit(<?= $f['id'] ?>)">✕</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
                 <?php endforeach; ?>
-                </tbody>
-            </table>
+                </div>
+            </div>
+            <?php endforeach; ?>
+            </div>
             <?php endif; ?>
         </div>
     </div>
@@ -449,25 +437,18 @@ table.sp-table {
 
 <script>
 function spOpenEdit(id) {
-    // Close any other open edit rows
-    document.querySelectorAll('.sp-edit-row.open').forEach(r => r.classList.remove('open'));
-    document.querySelectorAll('.sp-data-row.sp-editing').forEach(r => r.classList.remove('sp-editing'));
-    document.getElementById('edit-' + id).classList.add('open');
-    document.getElementById('row-'  + id).classList.add('sp-editing');
+    document.querySelectorAll('.sp-edit-row').forEach(r => r.style.display = 'none');
+    document.getElementById('edit-' + id).style.display = 'block';
+    document.getElementById('row-'  + id).style.background = '#f0f7ff';
 }
 function spCloseEdit(id) {
-    document.getElementById('edit-' + id).classList.remove('open');
-    document.getElementById('row-'  + id).classList.remove('sp-editing');
+    document.getElementById('edit-' + id).style.display = 'none';
+    document.getElementById('row-'  + id).style.background = '';
 }
 function spFilter(q) {
     q = q.toLowerCase().trim();
-    document.querySelectorAll('.sp-data-row').forEach(row => {
-        const match = !q || row.dataset.name.includes(q)
-                         || row.dataset.airline.includes(q)
-                         || row.dataset.code.includes(q);
-        const editRow = document.getElementById('edit-' + row.id.replace('row-',''));
-        row.style.display     = match ? '' : 'none';
-        if (editRow) editRow.style.display = match ? '' : 'none';
+    document.querySelectorAll('#spGroupsContainer .sp-flight-group').forEach(g => {
+        g.style.display = (!q || g.dataset.search.includes(q)) ? '' : 'none';
     });
 }
 const spFlash = document.getElementById('spFlash');

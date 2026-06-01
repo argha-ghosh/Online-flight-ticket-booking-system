@@ -250,7 +250,11 @@ include("../includes/adminheader.php");
     .acp-tips-card { position:static; }
 }
 @media (max-width:500px) {
-    .acp-page { padding:16px 14px 40px; }
+    .acp-page { padding:16px 14px 80px; }
+    .acp-titlebar { gap: 10px; }
+    .acp-titlebar-icon { width: 42px; height: 42px; font-size: 1.2rem; }
+    .acp-titlebar h1 { font-size: 1.15rem; }
+    .acp-form-body { padding: 18px 16px; }
     .acp-footer { flex-direction:column-reverse; }
     .acp-btn-cancel, .acp-btn-submit { width:100%; justify-content:center; }
 }

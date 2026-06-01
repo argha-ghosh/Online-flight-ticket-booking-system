@@ -377,10 +377,20 @@ select option[value="inactive"] { color: #dc2626; }
     .al-form-panel { position: static; }
 }
 @media (max-width: 600px) {
-    .al-page { padding: 16px 14px 40px; }
+    .al-page { padding: 16px 14px 80px; }
+    .al-titlebar { flex-direction: column; align-items: flex-start; gap: 10px; }
     .al-titlebar h1 { font-size: 1.15rem; }
+    .al-titlebar-icon { width: 42px; height: 42px; font-size: 1.2rem; }
     .al-row { grid-template-columns: 1fr; }
-    .al-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .al-grid { grid-template-columns: 1fr 1fr; }
+    .al-form-header { padding: 16px 18px; }
+    .al-form-body { padding: 16px 18px; }
+    .al-list-body { padding: 16px 18px; }
+    .al-card-actions { flex-direction: row; }
+    .al-count-pill { font-size: .72rem; padding: 5px 12px; }
+}
+@media (max-width: 400px) {
+    .al-grid { grid-template-columns: 1fr; }
 }
 </style>
 

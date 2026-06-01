@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (mysqli_sql_exception $e) {
             if ($e->getCode() === 1062) {
-                $_SESSION['flight_msg']      = "Error: Flight code '" . htmlspecialchars($flight_code) . "' already exists.";
+                $_SESSION['flight_msg']      = "Error: Flight code '" . htmlspecialchars($flight_code) . "' with class '" . htmlspecialchars($flight_class) . "' already exists. You can use the same code with a different class (Economy / Business / First Class).";
             } else {
                 $_SESSION['flight_msg']      = 'DB Execute error: ' . $e->getMessage();
             }
@@ -277,9 +277,16 @@ include("../includes/adminheader.php");
 
 /* Responsive */
 @media (max-width: 640px) {
-    .ef-page { padding: 16px 14px 40px; }
+    .ef-page { padding: 16px 14px 80px; }
+    .ef-titlebar { gap: 10px; }
+    .ef-titlebar-icon { width: 42px; height: 42px; font-size: 1.2rem; }
+    .ef-titlebar h1 { font-size: 1.15rem; }
     .ef-row { grid-template-columns: 1fr; }
+    .ef-card-body { padding: 18px 16px; }
+    .ef-preview-bar { padding: 14px 16px; gap: 12px; }
+    .ef-preview-bar img { width: 60px; height: 60px; }
     .ef-actions { flex-direction: column; }
+    .ef-btn-update, .ef-btn-cancel { width: 100%; justify-content: center; }
 }
 </style>
 

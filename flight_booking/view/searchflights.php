@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
@@ -99,6 +99,7 @@ $total_passengers = $adults + $children;
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoZayan | Search Flights</title>
 

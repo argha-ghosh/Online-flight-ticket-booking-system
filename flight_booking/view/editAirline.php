@@ -148,7 +148,18 @@ include("../includes/adminheader.php");
 .ea-btn-cancel { padding:13px 24px; background:#f8fafc; color:#64748b; border:1.5px solid #e2e8f0; border-radius:11px; font-size:0.95rem; font-weight:600; cursor:pointer; text-decoration:none; display:flex; align-items:center; gap:7px; transition:background 0.15s, color 0.15s; font-family:inherit; }
 .ea-btn-cancel:hover { background:#f1f5f9; color:#334155; }
 
-@media (max-width:640px) { .ea-page { padding:16px 14px 40px; } .ea-row { grid-template-columns:1fr; } .ea-actions { flex-direction:column; } }
+@media (max-width:640px) {
+    .ea-page { padding:16px 14px 80px; }
+    .ea-titlebar { gap: 10px; }
+    .ea-titlebar-icon { width: 42px; height: 42px; font-size: 1.2rem; }
+    .ea-titlebar h1 { font-size: 1.15rem; }
+    .ea-row { grid-template-columns:1fr; }
+    .ea-card-body { padding: 18px 16px; }
+    .ea-preview-bar { padding: 14px 16px; gap: 12px; }
+    .ea-preview-bar img { width: 60px; height: 60px; }
+    .ea-actions { flex-direction:column; }
+    .ea-btn-save, .ea-btn-cancel { width: 100%; justify-content: center; }
+}
 </style>
 
 <div class="ea-page">

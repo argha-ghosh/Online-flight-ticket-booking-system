@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . "/../config/base_url.php";
 include("../includes/adminheader.php");
 include("../model/db_conn.php");
@@ -88,6 +88,7 @@ $chart_rt_cnt  = json_encode(array_column($routes,'cnt'));
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GoZayan | Analytics Dashboard</title>
 <link rel="stylesheet" href="component.css">
@@ -321,7 +322,40 @@ body { background: var(--db-bg); }
 .empty-state .ei { font-size:3rem; opacity:.25; margin-bottom:12px; display:block; }
 
 /* ── SCROLLABLE TABLE ── */
-.table-scroll { overflow-x:auto; }
+.table-scroll { overflow-x:auto; -webkit-overflow-scrolling: touch; }
+
+/* ── MOBILE ── */
+@media(max-width:750px){
+    .db-wrap { padding: 16px 14px 80px; }
+    .db-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .db-icon { width: 46px; height: 46px; font-size: 1.3rem; border-radius: 14px; }
+    .db-header h1 { font-size: 1.2rem; }
+    .db-live { font-size: .72rem; padding: 6px 14px; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .kpi-card { padding: 16px 14px; gap: 12px; }
+    .kpi-icon { width: 40px; height: 40px; font-size: 1.1rem; border-radius: 11px; }
+    .kpi-val { font-size: 1.4rem; }
+    .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; gap: 16px; }
+    .panel-hd { padding: 14px 16px; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .panel-bd { padding: 14px 16px; }
+    .chart-box-tall  { height: 220px; }
+    .chart-box-mid   { height: 190px; }
+    .chart-box-short { height: 170px; }
+    .route-item { padding: 10px 12px; }
+    .route-name { font-size: .82rem; }
+    .al-item { padding: 10px 12px; gap: 10px; }
+    .al-logo { width: 34px; height: 34px; font-size: .65rem; }
+    .bk-table th, .bk-table td { padding: 10px 12px; font-size: .78rem; }
+    /* Hide less critical columns on mobile */
+    .bk-table th:nth-child(4), .bk-table td:nth-child(4),
+    .bk-table th:nth-child(5), .bk-table td:nth-child(5) { display: none; }
+}
+@media(max-width:480px){
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-val { font-size: 1.2rem; }
+    .kpi-lbl { font-size: .65rem; }
+    .bk-table th:nth-child(6), .bk-table td:nth-child(6) { display: none; }
+}
 </style>
 </head>
 <body>

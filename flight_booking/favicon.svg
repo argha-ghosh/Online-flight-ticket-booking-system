@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f2444;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1565c0;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="planeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#e8c96a;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="13" ry="13" fill="url(#bgGrad)"/>
+
+  <!-- Airplane (pointing top-right, tilted 45deg) -->
+  <g transform="translate(32,32) rotate(-40) translate(-32,-32)">
+    <!-- Fuselage -->
+    <ellipse cx="33" cy="32" rx="16" ry="5" fill="url(#planeGrad)"/>
+    <!-- Nose -->
+    <ellipse cx="48" cy="32" rx="4" ry="3.2" fill="url(#planeGrad)"/>
+    <!-- Tail -->
+    <polygon points="17,32 13,32 15,26" fill="url(#planeGrad)" opacity="0.9"/>
+    <!-- Main wings -->
+    <polygon points="28,31 36,31 40,19 24,25" fill="url(#planeGrad)" opacity="0.92"/>
+    <polygon points="28,33 36,33 40,45 24,39" fill="url(#planeGrad)" opacity="0.82"/>
+    <!-- Tail wings -->
+    <polygon points="17,31 22,31 23,25 15,27" fill="url(#planeGrad)" opacity="0.88"/>
+    <polygon points="17,33 22,33 23,39 15,37" fill="url(#planeGrad)" opacity="0.78"/>
+  </g>
+
+  <!-- Gold accent: small star/sparkle top-right -->
+  <circle cx="50" cy="14" r="2.5" fill="#c9a84c" opacity="0.85"/>
+  <circle cx="55" cy="20" r="1.5" fill="#c9a84c" opacity="0.55"/>
+</svg>

@@ -256,11 +256,18 @@ if ($is_webuser && isset($_SESSION['email'])) {
     /* ── BODY OFFSET (since header is fixed) ── */
     /* Hero pages handle their own top padding — no global offset */
 
-    /* ── RESPONSIVE ── */
+    /* ── MOBILE HEADER ── */
     @media (max-width: 768px) {
+        .header-container { padding: 0 14px; height: 52px; }
+        .header-logo .logo-text { font-size: 1.1rem; }
+        .header-logo .logo-icon { width: 30px; height: 30px; font-size: .9rem; }
         nav > a:not(.btn-nav-login):not(.btn-nav-register) { display: none; }
         .nav-divider { display: none; }
-        .header-container { padding: 0 16px; }
+        .user-trigger .u-name { display: none; }
+        .user-trigger { padding: 4px 8px 4px 4px; }
+        .nav-avatar { width: 30px; height: 30px; }
+        .dropdown-content { right: -10px; min-width: 200px; }
+        .btn-nav-login, .btn-nav-register { padding: 6px 12px !important; font-size: .82rem !important; }
     }
 </style>
 

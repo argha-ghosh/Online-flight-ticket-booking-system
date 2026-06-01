@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
@@ -49,6 +49,7 @@ include("../includes/header.php");
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GoZayan · My Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -455,10 +456,30 @@ body {
 .ql-arrow { margin-left: auto; color: var(--ink-4); font-size: .75rem; transition: color .2s, transform .2s; }
 .quick-link:hover .ql-arrow { color: var(--gold-dk); transform: translateX(3px); }
 
-/* Responsive */
-@media (max-width: 1100px) { .page-wrap { grid-template-columns: 1fr; } .sidebar { position: static; } .body-grid { grid-template-columns: 1fr; } }
-@media (max-width: 780px)  { .page-wrap { padding: 18px 16px 80px; } .stat-strip { grid-template-columns: 1fr 1fr; } .greeting-bar { flex-direction: column; align-items: flex-start; } .sub-header { padding: 14px 20px; } }
-@media (max-width: 480px)  { .stat-strip { grid-template-columns: 1fr; } }
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:var(--navy);border-top:2px solid rgba(201,168,76,.3);padding:8px 0 env(safe-area-inset-bottom,8px);box-shadow:0 -4px 20px rgba(8,23,46,.3)}
+.mobile-nav-inner{display:flex;justify-content:space-around;align-items:center;max-width:500px;margin:0 auto}
+.mob-link{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:rgba(255,255,255,.55);font-size:.62rem;font-weight:600;padding:4px 8px;border-radius:8px;transition:color .18s}
+.mob-link i{font-size:1.1rem}
+.mob-link.active,.mob-link:hover{color:var(--gold-lt)}
+
+@media(max-width:1100px){
+    .page-wrap{grid-template-columns:1fr;padding:20px 20px 100px}
+    .sidebar{position:static;display:none}
+    .body-grid{grid-template-columns:1fr}
+}
+@media(max-width:780px){
+    .sub-header{padding:14px 16px;gap:14px}
+    .sub-header .sh-badge{display:none}
+    .sh-icon{width:38px;height:38px;font-size:1rem}
+    .sh-text h2{font-size:1rem}
+    .page-wrap{padding:16px 14px 100px;gap:18px}
+    .mobile-nav{display:block}
+    .sidebar{display:none}
+    .stat-strip{grid-template-columns:1fr}
+    .body-grid{grid-template-columns:1fr}
+    .greeting-bar{flex-direction:column;align-items:flex-start}
+}
 </style>
 </head>
 <body>
@@ -661,6 +682,14 @@ body {
     </div>
 </div>
 <?php endif; ?>
+
+<nav class="mobile-nav"><div class="mobile-nav-inner">
+    <a href="userhome.php" class="mob-link active"><i class="fas fa-house"></i>Home</a>
+    <a href="searchflights.php" class="mob-link"><i class="fas fa-magnifying-glass"></i>Search</a>
+    <a href="myBookings.php" class="mob-link"><i class="fas fa-ticket"></i>Bookings</a>
+    <a href="passengerProfile.php" class="mob-link"><i class="fas fa-user"></i>Profile</a>
+    <a href="/flight_booking/logout.php" class="mob-link"><i class="fas fa-right-from-bracket"></i>Logout</a>
+</div></nav>
 
 <?php include("../includes/footer.php"); ?>
 </body>

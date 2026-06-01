@@ -1,11 +1,13 @@
 <?php
 /**
- * Base URL Configuration
- * 
- * Change this value when deploying to a different environment:
- * - Local (XAMPP):      '/flight_booking'
- * - InfinityFree:       ''  (files are directly in htdocs/)
- * - Other hosting:      adjust as needed
+ * Base URL Configuration — auto-detects environment
+ * - Local (XAMPP):  localhost → /flight_booking
+ * - Production:     any other host → ''
  */
-define('BASE_URL', '');
+$host = $_SERVER['HTTP_HOST'] ?? '';
+if ($host === 'localhost' || $host === '127.0.0.1') {
+    define('BASE_URL', '/flight_booking');
+} else {
+    define('BASE_URL', '');
+}
 ?>
