@@ -374,9 +374,20 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
         </div>
 
         <div class="bp-payment">
-            <div class="pay-item"><div class="py-lbl">Payment Method</div><div class="py-val"><?= ucfirst($booking['payment_method']??'—') ?></div></div>
+            <div class="pay-item"><div class="py-lbl">Payment Method</div><div class="py-val">
+                <?php
+                $pm = strtolower($booking['payment_method'] ?? '');
+                if ($pm === 'bkash')      echo '<span style="color:#e2136e;font-weight:700">🟣 bKash</span>';
+                elseif ($pm === 'nagad')  echo '<span style="color:#f55a00;font-weight:700">🔴 Nagad</span>';
+                else                      echo '<span>💳 ' . ucfirst($pm) . '</span>';
+                ?>
+            </div></div>
+            <?php if (in_array($pm, ['bkash','nagad'])): ?>
+            <div class="pay-item"><div class="py-lbl">Mobile</div><div class="py-val">•••• <?= htmlspecialchars($booking['card_last4']??'——') ?></div></div>
+            <?php else: ?>
             <div class="pay-item"><div class="py-lbl">Card</div><div class="py-val">•••• <?= htmlspecialchars($booking['card_last4']??'——') ?></div></div>
             <div class="pay-item"><div class="py-lbl">Card Holder</div><div class="py-val"><?= htmlspecialchars($booking['card_holder']??'—') ?></div></div>
+            <?php endif; ?>
             <div class="pay-item" style="margin-left:auto"><div class="py-lbl">Amount Charged</div><div class="py-val" style="font-family:var(--mono);color:var(--navy-3);font-size:.95rem">$<?= number_format($booking['total_price'],0) ?></div></div>
         </div>
     </div>

@@ -676,7 +676,7 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
                 <button class="trip-tab" onclick="setTrip(this,'round-trip')">Round Trip</button>
             </div>
 
-            <form action="passengerHome.php" method="POST">
+            <form action="searchflights.php" method="POST">
                 <input type="hidden" name="trip_type" id="trip_type" value="one-way">
 
                 <!-- From / To -->

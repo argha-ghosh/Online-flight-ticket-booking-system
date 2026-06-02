@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 require_once __DIR__ . "/../config/base_url.php";
 include("../model/db_conn.php");
@@ -41,42 +41,88 @@ $total_price = round($unit_price * ($adults + $children), 2);
 $error = '';
 
 if (isset($_POST['pay_now'])) {
-    $card_holder = trim($_POST['card_holder'] ?? '');
-    $card_number = preg_replace('/\D/', '', $_POST['card_number'] ?? '');
-    $expiry      = trim($_POST['expiry'] ?? '');
-    $cvv         = trim($_POST['cvv'] ?? '');
     $pay_method  = $_POST['pay_method'] ?? 'card';
 
-    if (empty($card_holder))                              $error = "Cardholder name is required.";
-    elseif (strlen($card_number) < 13)                   $error = "Enter a valid card number.";
-    elseif (!preg_match('/^\d{2}\/\d{2}$/', $expiry))    $error = "Expiry must be MM/YY format.";
-    elseif (strlen($cvv) < 3)                             $error = "CVV must be at least 3 digits.";
-    else {
-        $email  = $_SESSION['email'];
-        $u_stmt = $conn->prepare("SELECT id FROM webusers WHERE email = ?");
-        $u_stmt->bind_param("s", $email);
-        $u_stmt->execute();
-        $u_row    = $u_stmt->get_result()->fetch_assoc();
-        $u_stmt->close();
-        $user_id  = $u_row['id'];
-        $card_last4 = substr($card_number, -4);
+    if ($pay_method === 'bkash' || $pay_method === 'nagad') {
+        // Mobile banking flow
+        $mobile_num  = preg_replace('/\D/', '', $_POST['mobile_number'] ?? '');
+        $otp_entered = trim($_POST['otp_code'] ?? '');
+        $trx_id      = strtoupper(trim($_POST['trx_id'] ?? ''));
 
-        $ins = $conn->prepare("
-            INSERT INTO bookings (user_id,flight_id,trip_type,from_location,to_location,depart_date,adults,children,class,total_price,payment_method,card_last4,card_holder,status)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'confirmed')
-        ");
-        $ins->bind_param("iissssiiissss",
-            $user_id,$flight_id,$trip_type,$from,$to,
-            $depart_date,$adults,$children,$class,
-            $total_price,$pay_method,$card_last4,$card_holder
-        );
-        if ($ins->execute()) {
-            $booking_id = $ins->insert_id;
-            $ins->close();
-            $conn->query("UPDATE flights SET seat = seat - ".($adults+$children)." WHERE id = $flight_id AND seat > 0");
-            header("Location: booking_confirm.php?id=$booking_id"); exit;
+        // OTP verification check
+        $otp_verified = isset($_SESSION['otp_verified']) && $_SESSION['otp_verified'] === true;
+        $otp_mobile_match = isset($_SESSION['otp_mobile']) && $_SESSION['otp_mobile'] === $mobile_num;
+        $otp_fresh = isset($_SESSION['otp_time']) && (time() - $_SESSION['otp_time']) < 600; // 10 min validity
+
+        if (strlen($mobile_num) !== 11 || !str_starts_with($mobile_num, '0')) {
+            $error = "Please enter a valid 11-digit mobile number.";
+        } elseif (!$otp_verified || !$otp_mobile_match || !$otp_fresh) {
+            $error = "Please verify your mobile number with OTP before payment.";
+        } elseif (empty($trx_id)) {
+            $error = "Transaction ID is required.";
         } else {
-            $error = "Booking failed. Please try again.";
+            $card_holder = $_SESSION['email'];
+            $card_last4  = substr($mobile_num, -4);
+            $email       = $_SESSION['email'];
+            $u_stmt = $conn->prepare("SELECT id FROM webusers WHERE email = ?");
+            $u_stmt->bind_param("s", $email); $u_stmt->execute();
+            $u_row = $u_stmt->get_result()->fetch_assoc(); $u_stmt->close();
+            $user_id = $u_row['id'];
+
+            $ins = $conn->prepare("
+                INSERT INTO bookings (user_id,flight_id,trip_type,from_location,to_location,depart_date,adults,children,class,total_price,payment_method,card_last4,card_holder,status)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'confirmed')
+            ");
+            $ins->bind_param("iissssiiissss",
+                $user_id,$flight_id,$trip_type,$from,$to,
+                $depart_date,$adults,$children,$class,
+                $total_price,$pay_method,$card_last4,$card_holder
+            );
+            if ($ins->execute()) {
+                $booking_id = $ins->insert_id; $ins->close();
+                $conn->query("UPDATE flights SET seat = seat - ".($adults+$children)." WHERE id = $flight_id AND seat > 0");
+                // Clear OTP session after successful payment
+                unset($_SESSION['otp_verified'], $_SESSION['otp_mobile'], $_SESSION['otp_time']);
+                header("Location: booking_confirm.php?id=$booking_id"); exit;
+            } else {
+                $error = "Booking failed. Please try again.";
+            }
+        }
+    } else {
+        // Card flow
+        $card_holder = trim($_POST['card_holder'] ?? '');
+        $card_number = preg_replace('/\D/', '', $_POST['card_number'] ?? '');
+        $expiry      = trim($_POST['expiry'] ?? '');
+        $cvv         = trim($_POST['cvv'] ?? '');
+
+        if (empty($card_holder))                              $error = "Cardholder name is required.";
+        elseif (strlen($card_number) < 13)                   $error = "Enter a valid card number.";
+        elseif (!preg_match('/^\d{2}\/\d{2}$/', $expiry))    $error = "Expiry must be MM/YY format.";
+        elseif (strlen($cvv) < 3)                             $error = "CVV must be at least 3 digits.";
+        else {
+            $email  = $_SESSION['email'];
+            $u_stmt = $conn->prepare("SELECT id FROM webusers WHERE email = ?");
+            $u_stmt->bind_param("s", $email); $u_stmt->execute();
+            $u_row    = $u_stmt->get_result()->fetch_assoc(); $u_stmt->close();
+            $user_id  = $u_row['id'];
+            $card_last4 = substr($card_number, -4);
+
+            $ins = $conn->prepare("
+                INSERT INTO bookings (user_id,flight_id,trip_type,from_location,to_location,depart_date,adults,children,class,total_price,payment_method,card_last4,card_holder,status)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'confirmed')
+            ");
+            $ins->bind_param("iissssiiissss",
+                $user_id,$flight_id,$trip_type,$from,$to,
+                $depart_date,$adults,$children,$class,
+                $total_price,$pay_method,$card_last4,$card_holder
+            );
+            if ($ins->execute()) {
+                $booking_id = $ins->insert_id; $ins->close();
+                $conn->query("UPDATE flights SET seat = seat - ".($adults+$children)." WHERE id = $flight_id AND seat > 0");
+                header("Location: booking_confirm.php?id=$booking_id"); exit;
+            } else {
+                $error = "Booking failed. Please try again.";
+            }
         }
     }
 }
@@ -631,6 +677,137 @@ $class_icon = ['Economy'=>'🪑','Business'=>'💼','Premium'=>'✨'];
     }
     .pay-btn:active { transform: translateY(0); }
 
+    /* ─── MOBILE BANKING PANEL ─── */
+    .mfs-panel { display: none; }
+    .mfs-panel.active { display: block; animation: slideIn .3s ease; }
+
+    /* bKash / Nagad brand header */
+    .mfs-brand {
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 18px;
+        position: relative;
+        overflow: hidden;
+    }
+    .mfs-brand.bkash-brand {
+        background: linear-gradient(135deg, #e2136e 0%, #9c0a4e 100%);
+    }
+    .mfs-brand.nagad-brand {
+        background: linear-gradient(135deg, #f55a00 0%, #a83b00 100%);
+    }
+    .mfs-brand::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: radial-gradient(circle at 80% 20%, rgba(255,255,255,.15), transparent 60%);
+    }
+    .mfs-logo {
+        font-size: 2.2rem;
+        display: block;
+        margin-bottom: 6px;
+    }
+    .mfs-brand-name {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.01em;
+    }
+    .mfs-brand-sub {
+        font-size: .72rem;
+        color: rgba(255,255,255,.75);
+        margin-top: 2px;
+    }
+
+    /* Steps indicator */
+    .mfs-steps {
+        display: flex;
+        gap: 0;
+        margin-bottom: 20px;
+        background: var(--bg-3);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+    .mfs-step {
+        flex: 1;
+        padding: 10px 6px;
+        text-align: center;
+        font-size: .65rem;
+        font-weight: 700;
+        color: var(--text-dim);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+    }
+    .mfs-step:last-child { border-right: none; }
+    .mfs-step .ms-num {
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: var(--border);
+        color: var(--text-dim);
+        font-size: .7rem;
+        font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .mfs-step.done .ms-num { background: var(--green); color: #fff; }
+    .mfs-step.active .ms-num { background: var(--gold); color: #fff; }
+    .mfs-step.active { color: var(--gold-lt); }
+    .mfs-step.done   { color: var(--green); }
+
+    /* Instruction box */
+    .mfs-instruction {
+        background: var(--bg-3);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--gold);
+        border-radius: var(--radius-sm);
+        padding: 14px 16px;
+        margin-bottom: 18px;
+        font-size: .82rem;
+        color: var(--text-soft);
+        line-height: 1.6;
+    }
+    .mfs-instruction strong { color: var(--gold-lt); }
+    .mfs-instruction .mfs-number {
+        font-family: var(--font-mono);
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text);
+        display: block;
+        margin: 6px 0 4px;
+        letter-spacing: .06em;
+    }
+
+    /* amount chip */
+    .mfs-amount-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(201,146,42,.1);
+        border: 1px solid rgba(201,146,42,.25);
+        border-radius: var(--radius);
+        padding: 12px 18px;
+        margin-bottom: 18px;
+        width: 100%;
+    }
+    .mfs-amount-chip .mac-label {
+        font-size: .7rem;
+        color: var(--text-soft);
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: .1em;
+    }
+    .mfs-amount-chip .mac-val {
+        font-family: var(--font-price);
+        font-size: 1.6rem;
+        color: var(--gold-lt);
+        letter-spacing: .04em;
+        margin-left: auto;
+    }
+
     /* secure badge */
     .secure-row {
         display: flex; align-items: center; justify-content: center; gap: 18px;
@@ -642,6 +819,373 @@ $class_icon = ['Economy'=>'🪑','Business'=>'💼','Premium'=>'✨'];
         font-family: var(--font-mono);
     }
     .secure-item i { color: var(--green); font-size: .7rem; }
+
+    /* ═══════════════════════════════════════════
+       OTP VERIFICATION SECTION
+    ═══════════════════════════════════════════ */
+
+    /* OTP wrapper area */
+    .otp-section {
+        margin-top: 14px;
+        animation: otpSlideIn .4s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes otpSlideIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* "Send OTP" button */
+    .otp-send-btn {
+        width: 100%;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: var(--font-body);
+        font-size: .88rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        letter-spacing: .02em;
+        transition: all .25s;
+        box-shadow: 0 6px 22px rgba(16,185,129,.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .otp-send-btn::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+        transform: translateX(-100%);
+        transition: transform .5s;
+    }
+    .otp-send-btn:hover::before { transform: translateX(100%); }
+    .otp-send-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(16,185,129,.4);
+    }
+    .otp-send-btn:active { transform: translateY(0); }
+    .otp-send-btn:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Pulse animation for Send OTP */
+    .otp-send-btn.pulse {
+        animation: btnPulse 1.5s ease infinite;
+    }
+    @keyframes btnPulse {
+        0%, 100% { box-shadow: 0 6px 22px rgba(16,185,129,.3); }
+        50% { box-shadow: 0 6px 30px rgba(16,185,129,.6); }
+    }
+
+    /* OTP input area (6 digit boxes) */
+    .otp-verify-area {
+        display: none;
+        animation: otpSlideIn .4s cubic-bezier(.22,1,.36,1) both;
+    }
+    .otp-verify-area.active { display: block; }
+
+    .otp-header {
+        text-align: center;
+        margin-bottom: 16px;
+    }
+    .otp-header .otp-title {
+        font-size: .9rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 4px;
+    }
+    .otp-header .otp-subtitle {
+        font-size: .75rem;
+        color: var(--text-soft);
+        font-family: var(--font-mono);
+    }
+    .otp-header .otp-mobile-display {
+        color: var(--gold-lt);
+        font-weight: 600;
+    }
+
+    /* 6 digit boxes */
+    .otp-digit-row {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 14px;
+    }
+    .otp-digit {
+        width: 48px;
+        height: 56px;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text);
+        background: var(--bg-3);
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        outline: none;
+        transition: all .2s;
+        caret-color: var(--gold);
+    }
+    .otp-digit:focus {
+        border-color: var(--gold);
+        background: var(--surface);
+        box-shadow: 0 0 0 4px rgba(201,146,42,.18);
+        transform: scale(1.05);
+    }
+    .otp-digit.filled {
+        border-color: var(--gold-lt);
+        background: rgba(201,146,42,.06);
+    }
+    .otp-digit.error {
+        border-color: var(--red);
+        animation: otpShake .4s ease;
+    }
+    .otp-digit.success {
+        border-color: var(--green);
+        background: rgba(34,197,94,.08);
+    }
+
+    @keyframes otpShake {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-6px); }
+        40% { transform: translateX(6px); }
+        60% { transform: translateX(-4px); }
+        80% { transform: translateX(4px); }
+    }
+
+    /* Countdown timer */
+    .otp-timer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+    .otp-countdown {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: .78rem;
+        color: var(--text-soft);
+    }
+    .otp-countdown .timer-circle {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        border: 2.5px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .7rem; font-weight: 700;
+        color: var(--gold-lt);
+        position: relative;
+    }
+    .otp-countdown .timer-circle.urgent {
+        border-color: var(--red);
+        color: var(--red);
+        animation: timerPulse 1s ease infinite;
+    }
+    @keyframes timerPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .5; }
+    }
+
+    /* Resend button */
+    .otp-resend-btn {
+        background: none;
+        border: 1px solid var(--border);
+        color: var(--text-soft);
+        font-family: var(--font-mono);
+        font-size: .72rem;
+        padding: 6px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all .2s;
+        letter-spacing: .02em;
+    }
+    .otp-resend-btn:hover:not(:disabled) {
+        border-color: var(--gold);
+        color: var(--gold-lt);
+        background: rgba(201,146,42,.06);
+    }
+    .otp-resend-btn:disabled {
+        opacity: .35;
+        cursor: not-allowed;
+    }
+
+    /* OTP Status message */
+    .otp-status {
+        text-align: center;
+        font-size: .78rem;
+        font-weight: 600;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 14px;
+        display: none;
+        animation: otpSlideIn .3s ease;
+    }
+    .otp-status.show { display: block; }
+    .otp-status.success {
+        background: rgba(34,197,94,.1);
+        border: 1px solid rgba(34,197,94,.25);
+        color: #4ade80;
+    }
+    .otp-status.error {
+        background: rgba(239,68,68,.08);
+        border: 1px solid rgba(239,68,68,.25);
+        color: #fca5a5;
+    }
+
+    /* Verified badge */
+    .otp-verified-badge {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: rgba(34,197,94,.1);
+        border: 1.5px solid rgba(34,197,94,.3);
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 18px;
+        animation: verifiedGlow 2s ease infinite alternate;
+    }
+    .otp-verified-badge.show {
+        display: flex;
+    }
+    .otp-verified-badge .badge-icon {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        background: var(--green);
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .85rem;
+        flex-shrink: 0;
+    }
+    .otp-verified-badge .badge-text {
+        font-size: .85rem;
+        font-weight: 700;
+        color: #4ade80;
+    }
+    .otp-verified-badge .badge-mobile {
+        font-family: var(--font-mono);
+        font-size: .75rem;
+        color: var(--text-soft);
+    }
+
+    @keyframes verifiedGlow {
+        from { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        to   { box-shadow: 0 0 20px rgba(34,197,94,.12); }
+    }
+
+    /* Simulated OTP Toast */
+    .otp-toast {
+        position: fixed;
+        top: 90px;
+        right: 24px;
+        z-index: 10000;
+        background: linear-gradient(135deg, #1a3d6e, #0f2540);
+        border: 1.5px solid rgba(201,146,42,.4);
+        border-radius: 16px;
+        padding: 18px 22px;
+        min-width: 300px;
+        box-shadow: 0 16px 50px rgba(0,0,0,.6), 0 0 30px rgba(201,146,42,.15);
+        animation: toastIn .5s cubic-bezier(.22,1,.36,1) both;
+        backdrop-filter: blur(20px);
+    }
+    .otp-toast.hide {
+        animation: toastOut .4s ease forwards;
+    }
+    @keyframes toastIn {
+        from { opacity: 0; transform: translateX(60px) scale(.9); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes toastOut {
+        to { opacity: 0; transform: translateX(60px) scale(.9); }
+    }
+    .otp-toast-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .otp-toast-icon {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: rgba(201,146,42,.15);
+        border: 1px solid rgba(201,146,42,.3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem;
+        flex-shrink: 0;
+    }
+    .otp-toast-title {
+        font-size: .8rem;
+        font-weight: 700;
+        color: var(--gold-lt);
+        letter-spacing: .02em;
+    }
+    .otp-toast-sub {
+        font-size: .65rem;
+        color: var(--text-soft);
+        font-family: var(--font-mono);
+    }
+    .otp-toast-close {
+        position: absolute;
+        top: 12px; right: 14px;
+        background: none;
+        border: none;
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: .85rem;
+        transition: color .2s;
+    }
+    .otp-toast-close:hover { color: var(--text); }
+    .otp-toast-code {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin: 8px 0;
+    }
+    .otp-toast-digit {
+        width: 38px; height: 44px;
+        background: rgba(201,146,42,.1);
+        border: 1.5px solid rgba(201,146,42,.3);
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--gold-lt);
+        animation: digitPop .3s cubic-bezier(.22,1,.36,1) both;
+    }
+    .otp-toast-digit:nth-child(1) { animation-delay: .05s; }
+    .otp-toast-digit:nth-child(2) { animation-delay: .1s; }
+    .otp-toast-digit:nth-child(3) { animation-delay: .15s; }
+    .otp-toast-digit:nth-child(4) { animation-delay: .2s; }
+    .otp-toast-digit:nth-child(5) { animation-delay: .25s; }
+    .otp-toast-digit:nth-child(6) { animation-delay: .3s; }
+    @keyframes digitPop {
+        from { opacity: 0; transform: scale(.5) translateY(8px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .otp-toast-hint {
+        text-align: center;
+        font-size: .65rem;
+        color: var(--text-dim);
+        margin-top: 6px;
+        font-family: var(--font-mono);
+    }
+
+    /* Hide TxID + Pay until OTP verified */
+    .mfs-after-otp {
+        display: none;
+        animation: otpSlideIn .4s ease both;
+    }
+    .mfs-after-otp.show { display: block; }
 
     /* ═══════════════════════════════════════════
        RESPONSIVE
@@ -700,15 +1244,19 @@ $class_icon = ['Economy'=>'🪑','Business'=>'💼','Premium'=>'✨'];
 
 <form action="" method="POST" id="payForm">
     <!-- Carry booking data -->
-    <input type="hidden" name="flight_id"   value="<?= $flight_id ?>">
-    <input type="hidden" name="trip_type"   value="<?= htmlspecialchars($trip_type) ?>">
-    <input type="hidden" name="from"        value="<?= htmlspecialchars($from) ?>">
-    <input type="hidden" name="to"          value="<?= htmlspecialchars($to) ?>">
-    <input type="hidden" name="depart_date" value="<?= htmlspecialchars($depart_date) ?>">
-    <input type="hidden" name="adults"      value="<?= $adults ?>">
-    <input type="hidden" name="children"    value="<?= $children ?>">
-    <input type="hidden" name="class"       value="<?= htmlspecialchars($class) ?>">
-    <input type="hidden" name="pay_method" id="pay_method_input" value="card">
+    <input type="hidden" name="flight_id"     value="<?= $flight_id ?>">
+    <input type="hidden" name="trip_type"     value="<?= htmlspecialchars($trip_type) ?>">
+    <input type="hidden" name="from"          value="<?= htmlspecialchars($from) ?>">
+    <input type="hidden" name="to"            value="<?= htmlspecialchars($to) ?>">
+    <input type="hidden" name="depart_date"   value="<?= htmlspecialchars($depart_date) ?>">
+    <input type="hidden" name="adults"        value="<?= $adults ?>">
+    <input type="hidden" name="children"      value="<?= $children ?>">
+    <input type="hidden" name="class"         value="<?= htmlspecialchars($class) ?>">
+    <input type="hidden" name="pay_method"    id="pay_method_input" value="card">
+    <!-- MFS hidden inputs — filled by JS before submit -->
+    <input type="hidden" name="mobile_number" id="hidden_mobile" value="">
+    <input type="hidden" name="trx_id"        id="hidden_trx"    value="">
+    <input type="hidden" name="otp_code"      id="hidden_otp"    value="">
 
     <div class="pay-grid">
 
@@ -865,16 +1413,17 @@ $class_icon = ['Economy'=>'🪑','Business'=>'💼','Premium'=>'✨'];
                         <span class="mt-label">Card</span>
                     </div>
                     <div class="mtab bkash" data-method="bkash" onclick="setMethod('bkash',this)">
-                        <span class="mt-icon">🟣</span>
-                        <span class="mt-label">bKash</span>
+                        <span class="mt-icon" style="font-size:.95rem;font-weight:800;color:#e2136e;display:block;margin-bottom:2px;font-family:sans-serif">bKash</span>
+                        <span class="mt-label">Mobile</span>
                     </div>
                     <div class="mtab nagad" data-method="nagad" onclick="setMethod('nagad',this)">
-                        <span class="mt-icon">🔴</span>
-                        <span class="mt-label">Nagad</span>
+                        <span class="mt-icon" style="font-size:.95rem;font-weight:800;color:#f55a00;display:block;margin-bottom:2px;font-family:sans-serif">Nagad</span>
+                        <span class="mt-label">Mobile</span>
                     </div>
                 </div>
 
                 <!-- 3D Credit Card -->
+                <div id="cardSection">
                 <div class="card-3d" id="card3d" onclick="flipCard()">
                     <div class="card-inner" id="cardInner">
 
@@ -952,11 +1501,176 @@ $class_icon = ['Economy'=>'🪑','Business'=>'💼','Premium'=>'✨'];
                     </div>
                 </div>
 
-                <button type="submit" name="pay_now" class="pay-btn">
+                <button type="submit" name="pay_now" class="pay-btn" id="cardPayBtn">
                     <i class="fas fa-lock"></i>
                     <span>Pay Now</span>
                     <span class="btn-price">$<?= number_format($total_price, 2) ?></span>
                 </button>
+                </div><!-- /cardSection -->
+
+                <!-- ══ bKash Panel ══ -->
+                <div class="mfs-panel" id="bkashPanel">
+                    <div class="mfs-brand bkash-brand">
+                        <span class="mfs-logo">🟣</span>
+                        <div class="mfs-brand-name">bKash</div>
+                        <div class="mfs-brand-sub">Mobile Financial Service</div>
+                    </div>
+
+                    <!-- Step 1: Mobile number + Send OTP -->
+                    <div class="otp-section" id="bkash_step1">
+                        <div class="mfs-amount-chip">
+                            <div><div class="mac-label">Amount to Pay</div></div>
+                            <div class="mac-val">$<?= number_format($total_price, 2) ?></div>
+                        </div>
+                        <div class="fg">
+                            <label><i class="fas fa-mobile-screen"></i> bKash Account Number</label>
+                            <input type="text" id="bkash_mobile"
+                                   class="mono-input" placeholder="01XXXXXXXXX"
+                                   maxlength="11" oninput="this.value=this.value.replace(/\D/g,''); onMobileInput('bkash')">
+                        </div>
+                        <button type="button" class="otp-send-btn pulse" id="bkash_send_btn"
+                                onclick="sendOtp('bkash')" disabled>
+                            <i class="fas fa-paper-plane"></i> Send OTP to this number
+                        </button>
+                    </div>
+
+                    <!-- Step 2: OTP verification -->
+                    <div class="otp-verify-area" id="bkash_step2">
+                        <div class="otp-header">
+                            <div class="otp-title">Enter Verification Code</div>
+                            <div class="otp-subtitle">OTP sent to <span class="otp-mobile-display" id="bkash_mobile_display"></span></div>
+                        </div>
+                        <div class="otp-digit-row" id="bkash_otp_row">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'bkash')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'bkash')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'bkash')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'bkash')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'bkash')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'bkash')" onkeydown="otpDigitKey(event,this)">
+                        </div>
+                        <div class="otp-status" id="bkash_otp_status"></div>
+                        <div class="otp-timer-row">
+                            <div class="otp-countdown">
+                                <div class="timer-circle" id="bkash_timer_circle"><span id="bkash_timer">120</span></div>
+                                <span>seconds remaining</span>
+                            </div>
+                            <button type="button" class="otp-resend-btn" id="bkash_resend_btn"
+                                    onclick="sendOtp('bkash')" disabled>↺ Resend</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Verified — TxID + Pay -->
+                    <div class="otp-verified-badge" id="bkash_verified_badge">
+                        <div class="badge-icon"><i class="fas fa-check"></i></div>
+                        <div>
+                            <div class="badge-text">✓ Mobile Verified</div>
+                            <div class="badge-mobile" id="bkash_verified_mobile"></div>
+                        </div>
+                    </div>
+
+                    <div class="mfs-after-otp" id="bkash_after_otp">
+                        <div class="mfs-instruction">
+                            <strong>Now send the payment:</strong><br>
+                            Open bKash app → <strong>Send Money</strong> → send <strong>$<?= number_format($total_price, 2) ?></strong><br>
+                            to merchant: <span class="mfs-number">01XXXXXXXXX</span>
+                            Then enter the Transaction ID below.
+                        </div>
+                        <div class="fg">
+                            <label><i class="fas fa-receipt"></i> Transaction ID (TxID)</label>
+                            <input type="text" id="bkash_trx"
+                                   class="mono-input" placeholder="e.g. 8KJ3H2S9QD"
+                                   oninput="this.value=this.value.toUpperCase()">
+                        </div>
+                        <button type="button" class="pay-btn" style="background:linear-gradient(135deg,#e2136e,#9c0a4e)"
+                                onclick="submitMfs('bkash')">
+                            <span>🟣</span>
+                            <span>Confirm bKash Payment</span>
+                            <span class="btn-price">$<?= number_format($total_price, 2) ?></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ══ Nagad Panel ══ -->
+                <div class="mfs-panel" id="nagadPanel">
+                    <div class="mfs-brand nagad-brand">
+                        <span class="mfs-logo">🔴</span>
+                        <div class="mfs-brand-name">Nagad</div>
+                        <div class="mfs-brand-sub">Digital Financial Service</div>
+                    </div>
+
+                    <!-- Step 1 -->
+                    <div class="otp-section" id="nagad_step1">
+                        <div class="mfs-amount-chip">
+                            <div><div class="mac-label">Amount to Pay</div></div>
+                            <div class="mac-val">$<?= number_format($total_price, 2) ?></div>
+                        </div>
+                        <div class="fg">
+                            <label><i class="fas fa-mobile-screen"></i> Nagad Account Number</label>
+                            <input type="text" id="nagad_mobile"
+                                   class="mono-input" placeholder="01XXXXXXXXX"
+                                   maxlength="11" oninput="this.value=this.value.replace(/\D/g,''); onMobileInput('nagad')">
+                        </div>
+                        <button type="button" class="otp-send-btn pulse" id="nagad_send_btn"
+                                onclick="sendOtp('nagad')" disabled>
+                            <i class="fas fa-paper-plane"></i> Send OTP to this number
+                        </button>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="otp-verify-area" id="nagad_step2">
+                        <div class="otp-header">
+                            <div class="otp-title">Enter Verification Code</div>
+                            <div class="otp-subtitle">OTP sent to <span class="otp-mobile-display" id="nagad_mobile_display"></span></div>
+                        </div>
+                        <div class="otp-digit-row" id="nagad_otp_row">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'nagad')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'nagad')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'nagad')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'nagad')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'nagad')" onkeydown="otpDigitKey(event,this)">
+                            <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpDigitInput(this,'nagad')" onkeydown="otpDigitKey(event,this)">
+                        </div>
+                        <div class="otp-status" id="nagad_otp_status"></div>
+                        <div class="otp-timer-row">
+                            <div class="otp-countdown">
+                                <div class="timer-circle" id="nagad_timer_circle"><span id="nagad_timer">120</span></div>
+                                <span>seconds remaining</span>
+                            </div>
+                            <button type="button" class="otp-resend-btn" id="nagad_resend_btn"
+                                    onclick="sendOtp('nagad')" disabled>↺ Resend</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="otp-verified-badge" id="nagad_verified_badge">
+                        <div class="badge-icon"><i class="fas fa-check"></i></div>
+                        <div>
+                            <div class="badge-text">✓ Mobile Verified</div>
+                            <div class="badge-mobile" id="nagad_verified_mobile"></div>
+                        </div>
+                    </div>
+
+                    <div class="mfs-after-otp" id="nagad_after_otp">
+                        <div class="mfs-instruction">
+                            <strong>Now send the payment:</strong><br>
+                            Open Nagad app → <strong>Send Money</strong> → send <strong>$<?= number_format($total_price, 2) ?></strong><br>
+                            to merchant: <span class="mfs-number">01XXXXXXXXX</span>
+                            Then enter the Transaction ID below.
+                        </div>
+                        <div class="fg">
+                            <label><i class="fas fa-receipt"></i> Transaction ID (TxID)</label>
+                            <input type="text" id="nagad_trx"
+                                   class="mono-input" placeholder="e.g. NQ7K2M4P9R"
+                                   oninput="this.value=this.value.toUpperCase()">
+                        </div>
+                        <button type="button" class="pay-btn" style="background:linear-gradient(135deg,#f55a00,#a83b00)"
+                                onclick="submitMfs('nagad')">
+                            <span>🔴</span>
+                            <span>Confirm Nagad Payment</span>
+                            <span class="btn-price">$<?= number_format($total_price, 2) ?></span>
+                        </button>
+                    </div>
+                </div>
 
                 <div class="secure-row">
                     <div class="secure-item"><i class="fas fa-shield-halved"></i> SSL Encrypted</div>
@@ -1026,21 +1740,220 @@ function setMethod(method, tab) {
     tab.classList.add('active');
     document.getElementById('pay_method_input').value = method;
 
-    const front = document.getElementById('cardFront');
-    const back  = document.querySelector('.card-back');
-    const themes = {
-        card:  'linear-gradient(135deg, #0f2540 0%, #1a3d6e 50%, #0d3060 100%)',
-        bkash: 'linear-gradient(135deg, #3d0025 0%, #8a0848 50%, #c0106e 100%)',
-        nagad: 'linear-gradient(135deg, #2d1400 0%, #7a3000 50%, #c94400 100%)',
-    };
-    front.style.background = themes[method] || themes.card;
-    back.style.background  = themes[method] || themes.card;
+    const cardSection = document.getElementById('cardSection');
+    const bkashPanel  = document.getElementById('bkashPanel');
+    const nagadPanel  = document.getElementById('nagadPanel');
+
+    cardSection.style.display = 'none';
+    bkashPanel.classList.remove('active');
+    nagadPanel.classList.remove('active');
+
+    if (method === 'bkash')      bkashPanel.classList.add('active');
+    else if (method === 'nagad') nagadPanel.classList.add('active');
+    else                         cardSection.style.display = 'block';
+}
+
+/* ── OTP HELPERS ── */
+const otpTimers = {};
+
+function onMobileInput(provider) {
+    const val = document.getElementById(provider + '_mobile').value;
+    const btn = document.getElementById(provider + '_send_btn');
+    btn.disabled = val.length !== 11;
+    if (val.length === 11) btn.classList.add('pulse');
+    else btn.classList.remove('pulse');
+}
+
+function sendOtp(provider) {
+    const mobile = document.getElementById(provider + '_mobile').value.replace(/\D/g,'');
+    if (mobile.length !== 11) return;
+
+    const sendBtn   = document.getElementById(provider + '_send_btn');
+    const resendBtn = document.getElementById(provider + '_resend_btn');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+    fetch('send_otp.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'mobile=' + encodeURIComponent(mobile)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Show step 2
+            document.getElementById(provider + '_step1').style.opacity = '.5';
+            document.getElementById(provider + '_step2').classList.add('active');
+            document.getElementById(provider + '_mobile_display').textContent = data.mobile;
+
+            // Show OTP toast (demo only)
+            showOtpToast(data.otp, provider, mobile);
+
+            // Start countdown
+            startCountdown(provider, data.expires || 120);
+
+            sendBtn.innerHTML = '<i class="fas fa-check"></i> OTP Sent';
+        } else {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP to this number';
+            showOtpStatus(provider, data.message, 'error');
+        }
+    })
+    .catch(() => {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP to this number';
+        showOtpStatus(provider, 'Network error. Please try again.', 'error');
+    });
+}
+
+function startCountdown(provider, seconds) {
+    if (otpTimers[provider]) clearInterval(otpTimers[provider]);
+    let remaining = seconds;
+    const timerEl  = document.getElementById(provider + '_timer');
+    const circleEl = document.getElementById(provider + '_timer_circle');
+    const resendEl = document.getElementById(provider + '_resend_btn');
+
+    resendEl.disabled = true;
+
+    otpTimers[provider] = setInterval(() => {
+        remaining--;
+        if (timerEl) timerEl.textContent = remaining;
+        if (remaining <= 20 && circleEl) circleEl.classList.add('urgent');
+        if (remaining <= 0) {
+            clearInterval(otpTimers[provider]);
+            if (timerEl) timerEl.textContent = '0';
+            resendEl.disabled = false;
+            showOtpStatus(provider, 'OTP expired. Click Resend.', 'error');
+        }
+    }, 1000);
+}
+
+function otpDigitInput(input, provider) {
+    input.value = input.value.replace(/\D/g,'').slice(-1);
+    input.classList.toggle('filled', input.value !== '');
+
+    const row    = document.getElementById(provider + '_otp_row');
+    const digits = Array.from(row.querySelectorAll('.otp-digit'));
+    const idx    = digits.indexOf(input);
+
+    if (input.value && idx < digits.length - 1) digits[idx + 1].focus();
+
+    // Auto-verify when all 6 filled
+    const otp = digits.map(d => d.value).join('');
+    if (otp.length === 6) verifyOtp(provider, otp);
+}
+
+function otpDigitKey(e, input) {
+    if (e.key === 'Backspace' && !input.value) {
+        const row    = input.closest('.otp-digit-row');
+        const digits = Array.from(row.querySelectorAll('.otp-digit'));
+        const idx    = digits.indexOf(input);
+        if (idx > 0) { digits[idx - 1].value = ''; digits[idx - 1].classList.remove('filled'); digits[idx - 1].focus(); }
+    }
+}
+
+function verifyOtp(provider, otp) {
+    const mobile = document.getElementById(provider + '_mobile').value.replace(/\D/g,'');
+
+    fetch('verify_otp.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'otp=' + encodeURIComponent(otp) + '&mobile=' + encodeURIComponent(mobile)
+    })
+    .then(r => r.json())
+    .then(data => {
+        const row    = document.getElementById(provider + '_otp_row');
+        const digits = Array.from(row.querySelectorAll('.otp-digit'));
+
+        if (data.success) {
+            digits.forEach(d => { d.classList.add('success'); d.classList.remove('error'); });
+            if (otpTimers[provider]) clearInterval(otpTimers[provider]);
+            showOtpStatus(provider, '✓ ' + data.message, 'success');
+
+            // Show verified badge + TxID section
+            setTimeout(() => {
+                document.getElementById(provider + '_step2').style.display = 'none';
+                const badge = document.getElementById(provider + '_verified_badge');
+                badge.classList.add('show');
+                document.getElementById(provider + '_verified_mobile').textContent = mobile;
+                document.getElementById(provider + '_after_otp').classList.add('show');
+            }, 800);
+        } else {
+            digits.forEach(d => d.classList.add('error'));
+            showOtpStatus(provider, data.message, 'error');
+            setTimeout(() => {
+                digits.forEach(d => { d.classList.remove('error'); d.value = ''; d.classList.remove('filled'); });
+                digits[0].focus();
+            }, 1000);
+        }
+    });
+}
+
+function showOtpStatus(provider, msg, type) {
+    const el = document.getElementById(provider + '_otp_status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'otp-status show ' + type;
+    setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function showOtpToast(otp, provider, mobile) {
+    // Remove existing toast
+    document.querySelectorAll('.otp-toast').forEach(t => t.remove());
+
+    const brand   = provider === 'bkash' ? '🟣 bKash' : '🔴 Nagad';
+    const masked  = mobile.substring(0,4) + '***' + mobile.substring(7);
+    const digits  = otp.split('').map(d => `<div class="otp-toast-digit">${d}</div>`).join('');
+
+    const toast = document.createElement('div');
+    toast.className = 'otp-toast';
+    toast.style.position = 'fixed';
+    toast.innerHTML = `
+        <button class="otp-toast-close" onclick="this.closest('.otp-toast').remove()">✕</button>
+        <div class="otp-toast-header">
+            <div class="otp-toast-icon">📱</div>
+            <div>
+                <div class="otp-toast-title">${brand} OTP</div>
+                <div class="otp-toast-sub">Sent to ${masked}</div>
+            </div>
+        </div>
+        <div class="otp-toast-code">${digits}</div>
+        <div class="otp-toast-hint">⚠ Demo mode — enter this code above</div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 400); }, 15000);
+}
+
+function submitMfs(provider) {
+    const mobile = document.getElementById(provider + '_mobile').value.replace(/\D/g,'');
+    const trx    = (document.getElementById(provider + '_trx')?.value || '').trim();
+
+    if (!trx) {
+        alert('Please enter the Transaction ID (TxID) first.');
+        return;
+    }
+
+    document.getElementById('hidden_mobile').value = mobile;
+    document.getElementById('hidden_trx').value    = trx;
+    document.getElementById('pay_method_input').value = provider;
+
+    // Add pay_now to submit
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'pay_now'; inp.value = '1';
+    document.getElementById('payForm').appendChild(inp);
+    document.getElementById('payForm').submit();
 }
 
 /* ── MIN DATE ── */
 document.addEventListener('DOMContentLoaded', () => {
     const cardNum = document.getElementById('card_number');
     if (cardNum && '<?= htmlspecialchars($_POST['card_number'] ?? '') ?>') formatCard(cardNum);
+
+    const savedMethod = '<?= htmlspecialchars($_POST['pay_method'] ?? 'card') ?>';
+    if (savedMethod !== 'card') {
+        const tab = document.querySelector(`.mtab[data-method="${savedMethod}"]`);
+        if (tab) setMethod(savedMethod, tab);
+    }
 });
 </script>
 
