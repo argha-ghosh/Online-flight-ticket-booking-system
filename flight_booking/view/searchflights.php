@@ -812,6 +812,17 @@ $total_passengers = $adults + $children;
         width: 170px; flex-shrink: 0;
         object-fit: cover;
     }
+    .fc-img-logo {
+        width: 170px; flex-shrink: 0;
+        background: #fff;
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+        border-right: 1px solid var(--cream-2);
+    }
+    .fc-img-logo img {
+        width: 100%; max-width: 90px; max-height: 90px;
+        object-fit: contain;
+    }
     .fc-img-placeholder {
         width: 170px; flex-shrink: 0;
         background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%);
@@ -1108,6 +1119,16 @@ $total_passengers = $adults + $children;
             object-fit: cover;
             border-right: none;
             border-bottom: 1px solid var(--cream-2);
+        }
+        .fc-img-logo {
+            width: 100%;
+            height: 110px;
+            border-right: none;
+            border-bottom: 1px solid var(--cream-2);
+            padding: 16px;
+        }
+        .fc-img-logo img {
+            max-width: 80px; max-height: 70px;
         }
         .fc-img-placeholder {
             width: 100%;
@@ -1487,8 +1508,18 @@ $total_passengers = $adults + $children;
             <?php endif; ?>
 
             <?php if (!empty($flight['image'])): ?>
-                <img class="fc-img" src="upload/<?= htmlspecialchars($flight['image']) ?>" alt="Flight"
-                     style="<?= ($seats_left<=5&&$seats_left>0)?'padding-top:28px':'' ?>">
+                <?php $is_url = str_starts_with($flight['image'], 'http'); ?>
+                <?php $img_src = $is_url ? htmlspecialchars($flight['image']) : 'upload/' . htmlspecialchars($flight['image']); ?>
+                <?php if ($is_url): ?>
+                <div class="fc-img-logo" style="<?= ($seats_left<=5&&$seats_left>0)?'padding-top:36px':'' ?>">
+                    <img src="<?= $img_src ?>" alt="<?= htmlspecialchars($flight['airline_name']) ?>"
+                         onerror="this.parentNode.outerHTML='<div class=\'fc-img-placeholder\'>✈</div>'">
+                </div>
+                <?php else: ?>
+                <img class="fc-img" src="<?= $img_src ?>" alt="Flight"
+                     style="<?= ($seats_left<=5&&$seats_left>0)?'padding-top:28px':'' ?>"
+                     onerror="this.outerHTML='<div class=\'fc-img-placeholder\'>✈</div>'">
+                <?php endif; ?>
             <?php else: ?>
                 <div class="fc-img-placeholder" style="<?= ($seats_left<=5&&$seats_left>0)?'padding-top:28px':'' ?>">✈</div>
             <?php endif; ?>

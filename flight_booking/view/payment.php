@@ -1272,10 +1272,20 @@ $class_icon = ['Economy'=>'🪑','Business'=>'💼','Premium'=>'✨'];
             <div class="pay-card-body">
 
                 <?php if (!empty($flight['image'])): ?>
+                <?php $img_src = str_starts_with($flight['image'], 'http') ? htmlspecialchars($flight['image']) : 'upload/' . htmlspecialchars($flight['image']); ?>
+                <?php if (str_starts_with($flight['image'], 'http')): ?>
+                <div style="width:100%;height:170px;background:linear-gradient(135deg,var(--bg-3),var(--surface-2));display:flex;align-items:center;justify-content:center;border-radius:var(--radius);margin-bottom:20px;">
+                    <div style="width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,.3);">
+                        <img src="<?= $img_src ?>" alt="<?= htmlspecialchars($flight['airline_name']) ?>"
+                             style="width:80px;height:80px;object-fit:contain;">
+                    </div>
+                </div>
+                <?php else: ?>
                 <div class="flight-img-wrap">
-                    <img src="upload/<?= htmlspecialchars($flight['image']) ?>" alt="Flight">
+                    <img src="<?= $img_src ?>" alt="Flight">
                     <div class="img-overlay"></div>
                 </div>
+                <?php endif; ?>
                 <?php else: ?>
                 <div class="flight-img-placeholder">✈</div>
                 <?php endif; ?>

@@ -50,15 +50,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $duration       = trim($_POST['duration']);
     $status         = $_POST['status'];
 
-    // Upload shared image once
+    // Handle image — URL or file upload
     $uploadDir = __DIR__ . "/upload/";
     if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-    $image = time() . '_' . basename($_FILES['image']['name']);
-    if (!move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $image)) {
-        $_SESSION['flight_msg']      = "Image upload failed.";
-        $_SESSION['flight_msg_type'] = "error";
-        header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
+
+    $image_url = trim($_POST['image_url'] ?? '');
+    $image = '';
+
+    if (!empty($image_url) && str_starts_with($image_url, 'http')) {
+        // Use URL directly
+        $image = $image_url;
+    } elseif (!empty($_FILES['image']['name'])) {
+        // File upload
+        $image = time() . '_' . basename($_FILES['image']['name']);
+        if (!move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $image)) {
+            $_SESSION['flight_msg']      = "Image upload failed.";
+            $_SESSION['flight_msg_type'] = "error";
+            header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
+        }
     }
+    // $image can be empty — flight will show placeholder icon
 
     // Collect enabled classes
     $classes = ['Economy', 'Business', 'First Class'];
@@ -135,8 +146,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $_SESSION['flight_msg']      = "Nothing added. " . implode(' | ', $errors);
         $_SESSION['flight_msg_type'] = "error";
-        // Clean up image if nothing was inserted
-        if (file_exists($uploadDir . $image)) unlink($uploadDir . $image);
+        // Clean up uploaded file if nothing was inserted
+        if (!empty($image) && !str_starts_with($image, 'http') && file_exists($uploadDir . $image)) {
+            unlink($uploadDir . $image);
+        }
     }
 
     header("Location: " . BASE_URL . "/view/addFlight.php"); exit;
@@ -316,7 +329,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4fb; colo
 .fl-group-code { font-family:monospace; font-size:.82rem; font-weight:800; color:#0b72e6; background:#eff6ff; padding:3px 10px; border-radius:20px; border:1px solid #bfdbfe; }
 .fl-group-name { font-size:.9rem; font-weight:700; color:#0f172a; }
 .fl-group-route { font-size:.78rem; color:#64748b; }
-.fl-group-img { width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid #e8f0fb; flex-shrink:0; }
+.fl-group-img { width:44px; height:44px; object-fit:contain; border-radius:50%; border:1.5px solid #e8f0fb; flex-shrink:0; background:#fff; padding:4px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
 
 .fl-class-rows { border:1px solid #e8f0fb; border-radius:0 0 12px 12px; overflow:hidden; }
 .fl-class-row {
@@ -562,12 +575,30 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4fb; colo
                     </div><!-- /class-cards -->
 
                     <!-- Image -->
-                    <div class="fl-section" style="margin-top:18px;">Flight Image</div>
+                    <div class="fl-section" style="margin-top:18px;">Flight Image / Logo</div>
+                    <div class="fl-field">
+                        <label class="fl-label" style="font-size:.78rem;font-weight:600;color:#334155;margin-bottom:6px;display:block">Airline Logo URL <span style="color:#94a3b8;font-weight:400">(e.g. Google Flights logo URL)</span></label>
+                        <input type="url" name="image_url" id="imageUrlInput"
+                               placeholder="https://www.gstatic.com/flights/airline_logos/70px/BS.png"
+                               style="width:100%;padding:10px 14px;border:1.5px solid #c7d8f0;border-radius:8px;font-size:.88rem;color:#0f172a;background:#f8fafc;margin-bottom:8px;outline:none"
+                               oninput="previewLogoUrl(this.value)">
+                        <div id="logoPreview" style="display:none;align-items:center;gap:12px;padding:10px 14px;background:#f0f7ff;border-radius:8px;border:1px solid #bfdbfe;margin-bottom:10px">
+                            <div style="width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;border:1.5px solid #e2e8f0;box-shadow:0 2px 6px rgba(0,0,0,.08);flex-shrink:0">
+                                <img id="logoPreviewImg" src="" style="width:32px;height:32px;object-fit:contain" alt="">
+                            </div>
+                            <span style="font-size:.8rem;color:#2563eb;font-weight:600">✓ Logo loaded</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
+                        <div style="flex:1;height:1px;background:#e2e8f0"></div>
+                        <span style="font-size:.72rem;color:#94a3b8;font-weight:600;white-space:nowrap">OR upload image</span>
+                        <div style="flex:1;height:1px;background:#e2e8f0"></div>
+                    </div>
                     <div class="fl-field">
                         <div class="fl-file-zone" id="flFileZone">
-                            <input type="file" name="image" required accept="image/*" onchange="updateFlFileLabel(this)">
+                            <input type="file" name="image" accept="image/*" onchange="updateFlFileLabel(this)">
                             <span class="fz-icon">🖼️</span>
-                            <p class="fz-text" id="flFileLabel"><b>Click to upload</b> or drag &amp; drop<br>PNG, JPG, WEBP</p>
+                            <p class="fz-text" id="flFileLabel"><b>Click to upload</b> or drag &amp; drop<br>PNG, JPG, WEBP &nbsp;·&nbsp; <span style="color:#94a3b8">Optional</span></p>
                         </div>
                     </div>
 
@@ -606,7 +637,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4fb; colo
                 ?>
                 <div class="fl-group" data-search="<?= htmlspecialchars($searchStr) ?>">
                     <div class="fl-group-header">
-                        <img class="fl-group-img" src="upload/<?= htmlspecialchars($first['image']) ?>" alt="">
+                        <?php $img_src = str_starts_with($first['image'] ?? '', 'http') ? htmlspecialchars($first['image']) : 'upload/' . htmlspecialchars($first['image'] ?? ''); ?>
+                        <img class="fl-group-img" src="<?= $img_src ?>" alt="" onerror="this.style.display='none'">
                         <div style="flex:1;min-width:0">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                                 <span class="fl-group-code"><?= htmlspecialchars($code) ?></span>
@@ -673,6 +705,19 @@ function updateFlFileLabel(input) {
         label.innerHTML = '✅ <b>' + input.files[0].name + '</b>';
         zone.style.borderColor = '#16a34a';
         zone.style.background  = '#f0fdf4';
+    }
+}
+
+// Logo URL preview
+function previewLogoUrl(url) {
+    const preview = document.getElementById('logoPreview');
+    const img     = document.getElementById('logoPreviewImg');
+    if (url && url.startsWith('http')) {
+        img.src = url;
+        img.onload  = () => { preview.style.display = 'flex'; };
+        img.onerror = () => { preview.style.display = 'none'; };
+    } else {
+        preview.style.display = 'none';
     }
 }
 

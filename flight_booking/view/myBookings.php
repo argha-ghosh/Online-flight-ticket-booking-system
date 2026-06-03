@@ -385,7 +385,18 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
         <div class="bp-card">
             <div class="bp-stripe stripe-<?= htmlspecialchars($status) ?>"></div>
             <div class="bp-img">
-                <?php if (!empty($b['flight_image'])): ?><img src="upload/<?= htmlspecialchars($b['flight_image']) ?>" alt="Flight">
+                <?php if (!empty($b['flight_image'])):
+                    $is_url = str_starts_with($b['flight_image'], 'http');
+                    $img_src = $is_url ? htmlspecialchars($b['flight_image']) : 'upload/' . htmlspecialchars($b['flight_image']);
+                    if ($is_url): ?>
+                        <div style="width:100%;height:100%;background:var(--cream-2);display:flex;align-items:center;justify-content:center;">
+                            <div style="width:64px;height:64px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-sm);border:1.5px solid var(--border-2);">
+                                <img src="<?= $img_src ?>" alt="" style="width:46px;height:46px;object-fit:contain;" onerror="this.closest('div').innerHTML='✈'">
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <img src="<?= $img_src ?>" alt="Flight" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+                    <?php endif; ?>
                 <?php else: ?><i class="fas fa-plane"></i><?php endif; ?>
             </div>
             <div class="bp-body">
