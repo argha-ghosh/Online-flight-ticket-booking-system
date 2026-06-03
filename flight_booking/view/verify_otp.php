@@ -1,6 +1,6 @@
 <?php
 /**
- * verify_otp.php — Validates the OTP entered by the user
+ * verify_otp.php — Session-based OTP verification (demo mode)
  */
 session_start();
 header('Content-Type: application/json');
@@ -11,15 +11,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $otp_entered = trim($_POST['otp'] ?? '');
-$mobile      = preg_replace('/\D/', '', $_POST['mobile'] ?? '');
+$mobile_raw  = preg_replace('/\D/', '', $_POST['mobile'] ?? '');
 
-// Check session data
+if (strlen($otp_entered) !== 6) {
+    echo json_encode(['success' => false, 'message' => 'Enter the 6-digit OTP.']);
+    exit;
+}
+
 $session_otp    = $_SESSION['otp_code']   ?? '';
 $session_mobile = $_SESSION['otp_mobile'] ?? '';
 $session_time   = $_SESSION['otp_time']   ?? 0;
 
 if (empty($session_otp)) {
-    echo json_encode(['success' => false, 'message' => 'No OTP was sent. Please request a new one.']);
+    echo json_encode(['success' => false, 'message' => 'No OTP found. Please request a new one.']);
     exit;
 }
 
@@ -29,7 +33,7 @@ if ((time() - $session_time) > 120) {
     exit;
 }
 
-if ($session_mobile !== $mobile) {
+if ($session_mobile !== $mobile_raw) {
     echo json_encode(['success' => false, 'message' => 'Mobile number mismatch.']);
     exit;
 }
@@ -41,6 +45,6 @@ if ($otp_entered !== $session_otp) {
 
 // Mark as verified
 $_SESSION['otp_verified'] = true;
-unset($_SESSION['otp_code']); // One-time use
+unset($_SESSION['otp_code']);
 
 echo json_encode(['success' => true, 'message' => 'Mobile number verified successfully!']);

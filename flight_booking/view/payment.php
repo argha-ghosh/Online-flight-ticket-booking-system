@@ -1781,18 +1781,16 @@ function sendOtp(provider) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            // Show step 2
             document.getElementById(provider + '_step1').style.opacity = '.5';
             document.getElementById(provider + '_step2').classList.add('active');
             document.getElementById(provider + '_mobile_display').textContent = data.mobile;
 
-            // Show OTP toast (demo only)
-            showOtpToast(data.otp, provider, mobile);
+            // Show OTP toast (demo mode)
+            if (data.otp) showOtpToast(data.otp, provider, mobile);
 
-            // Start countdown
             startCountdown(provider, data.expires || 120);
-
-            sendBtn.innerHTML = '<i class="fas fa-check"></i> OTP Sent';
+            sendBtn.innerHTML = '<i class="fas fa-check"></i> OTP Sent ✓';
+            showOtpStatus(provider, '📱 OTP code shown on screen (demo mode)', 'success');
         } else {
             sendBtn.disabled = false;
             sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP to this number';

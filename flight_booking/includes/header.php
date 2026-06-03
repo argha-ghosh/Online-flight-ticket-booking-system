@@ -257,6 +257,9 @@ if ($is_webuser && isset($_SESSION['email'])) {
     /* Hero pages handle their own top padding — no global offset */
 
     /* ── MOBILE HEADER ── */
+    @media (max-width: 900px) {
+        nav > a:not(.btn-nav-login):not(.btn-nav-register):not([href*="searchflights"]) { display: none; }
+    }
     @media (max-width: 768px) {
         .header-container { padding: 0 14px; height: 52px; }
         .header-logo .logo-text { font-size: 1.1rem; }

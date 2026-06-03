@@ -256,13 +256,13 @@ body {
 .sb-stat.c-red   .n { color: var(--red); }
 
 /* Nav */
-.sb-nav{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-sm)}
-.sb-nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:.85rem;font-weight:600;color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--border-2);transition:background .18s,color .18s,border-color .18s;position:relative;letter-spacing:.01em}
+.sb-nav{background:var(--cream-2);border:1px solid var(--border-2);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-sm);display:flex;flex-direction:column}
+.sb-nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:.85rem;font-weight:600;color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--border-2);transition:background .18s,color .18s,border-color .18s;position:relative;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;background:var(--cream-2)}
 .sb-nav-item:last-child{border-bottom:none}
 .sb-nav-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .18s;border-radius:0 2px 2px 0}
 .sb-nav-item:hover{background:var(--cream-2);color:var(--navy)}
 .sb-nav-item:hover::before,.sb-nav-item.active::before{transform:scaleX(1)}
-.sb-nav-item.active{background:rgba(201,168,76,.1);color:var(--navy);font-weight:800;border-left:3px solid var(--gold)}
+.sb-nav-item.active{background:rgba(201,168,76,.1);color:var(--navy);font-weight:800}
 .sb-nav-item i{width:18px;text-align:center;font-size:.84rem;color:var(--ink-3);flex-shrink:0;transition:color .18s}
 .sb-nav-item:hover i,.sb-nav-item.active i{color:var(--gold)}
 /* Search Flights — gold accent row */
@@ -525,11 +525,7 @@ body {
         </div>
 
         <nav class="sb-nav">
-            <a href="userhome.php"       class="sb-nav-item active"><i class="fas fa-house"></i> Dashboard</a>
-            <!-- <a href="searchflights.php"  class="sb-nav-item search-link"><i class="fas fa-magnifying-glass"></i> Search Flights</a>
-            <a href="myBookings.php"     class="sb-nav-item"><i class="fas fa-ticket"></i> My Bookings</a>
-            <a href="passengerProfile.php" class="sb-nav-item"><i class="fas fa-user"></i> My Profile</a>
-            <a href="changePassword.php" class="sb-nav-item"><i class="fas fa-lock"></i> Change Password</a> -->
+            <a href="userhome.php" class="sb-nav-item active"><i class="fas fa-house"></i> Dashboard</a>
         </nav>
 
         <a href="<?= BASE_URL ?>/logout.php" class="sb-logout">
@@ -688,9 +684,8 @@ body {
     <a href="searchflights.php" class="mob-link"><i class="fas fa-magnifying-glass"></i>Search</a>
     <a href="myBookings.php" class="mob-link"><i class="fas fa-ticket"></i>Bookings</a>
     <a href="passengerProfile.php" class="mob-link"><i class="fas fa-user"></i>Profile</a>
-    <a href="/flight_booking/logout.php" class="mob-link"><i class="fas fa-right-from-bracket"></i>Logout</a>
+    <a href="<?= BASE_URL ?>/logout.php" class="mob-link"><i class="fas fa-right-from-bracket"></i>Logout</a>
 </div></nav>
-
 <?php include("../includes/footer.php"); ?>
 </body>
 </html>
