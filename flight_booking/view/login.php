@@ -39,7 +39,13 @@ if (isset($_POST['submit'])) {
                     exit;
                 }
                 elseif ($user['role'] === 'webuser') {
-                    header("Location: userhome.php");
+                    // Redirect to original page if set, otherwise userhome
+                    $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
+                    if (!empty($redirect) && str_starts_with($redirect, 'searchflights.php')) {
+                        header("Location: " . BASE_URL . "/view/" . ltrim($redirect, '/'));
+                    } else {
+                        header("Location: searchflights.php");
+                    }
                     exit;       
                 }
                 else {
@@ -63,7 +69,7 @@ if (isset($_POST['submit'])) {
     <meta charset="UTF-8">
     <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoZayan | Log In</title>
+    <!-- <title>GoZayan | Log In</title> -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -399,7 +405,7 @@ if (isset($_POST['submit'])) {
             <p class="sub">Login with your <b>GoZayan</b> account and enjoy a seamless journey across all services</p>
 
             <form action="" method="post">
-
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars($_GET['redirect'] ?? '') ?>">
                 <?php if ($error != ""): ?>
                 <div class="error-msg">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

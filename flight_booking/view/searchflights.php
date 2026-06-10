@@ -26,8 +26,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $children    = max(0, (int)($_POST['children'] ?? 0));
     $class       = $_POST['class']       ?? 'Economy';
     $search_performed = true;
+} elseif (!empty($_GET['from']) && !empty($_GET['to'])) {
+    // Restore search from GET params (after login redirect)
+    $trip_type   = $_GET['trip_type']   ?? 'one-way';
+    $from        = trim($_GET['from']   ?? '');
+    $to          = trim($_GET['to']     ?? '');
+    $depart_date = $_GET['depart_date'] ?? '';
+    $return_date = $_GET['return_date'] ?? '';
+    $adults      = max(1, (int)($_GET['adults']   ?? 1));
+    $children    = max(0, (int)($_GET['children'] ?? 0));
+    $class       = $_GET['class']       ?? 'Economy';
+    $search_performed = true;
+}
 
-    if (!empty($from) && !empty($to)) {
+if ($search_performed && !empty($from) && !empty($to)) {
         $from_pat   = "%" . $from . "%";
         $to_pat     = "%" . $to   . "%";
         $search_day = !empty($depart_date) ? date('l', strtotime($depart_date)) : '';
@@ -58,7 +70,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $result = $stmt->get_result();
         while ($row = $result->fetch_assoc()) $flights[] = $row;
         $stmt->close();
-    }
 }
 
 $city_rows = $conn->query("SELECT DISTINCT departure FROM flights UNION SELECT DISTINCT arrival FROM flights ORDER BY departure");
@@ -1609,7 +1620,19 @@ $total_passengers = $adults + $children;
                         </button>
                     </form>
                     <?php else: ?>
-                    <a href="login.php" class="book-btn login-req">
+                    <?php
+                    $redirect_params = http_build_query([
+                        'trip_type'   => $trip_type,
+                        'from'        => $from,
+                        'to'          => $to,
+                        'depart_date' => $depart_date,
+                        'adults'      => $adults,
+                        'children'    => $children,
+                        'class'       => $class,
+                    ]);
+                    $login_url = 'login.php?redirect=' . urlencode('searchflights.php?' . $redirect_params);
+                    ?>
+                    <a href="<?= $login_url ?>" class="book-btn login-req">
                         <i class="fas fa-arrow-right-to-bracket"></i> Login to Book
                     </a>
                     <?php endif; ?>
