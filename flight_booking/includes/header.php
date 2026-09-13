@@ -348,8 +348,15 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // Session check on tab refocus
-window.addEventListener('pageshow', e => { if (e.persisted) window.location.reload(); });
+// Disabled on register page to prevent OTP session loss
+const _isRegisterPage = window.location.pathname.endsWith('register.php');
+
+if (!_isRegisterPage) {
+    window.addEventListener('pageshow', e => { if (e.persisted) window.location.reload(); });
+}
+
 document.addEventListener('visibilitychange', () => {
+    if (_isRegisterPage) return;   // never reload register page on focus
     if (document.visibilityState === 'visible') {
         fetch('<?= BASE_URL ?>/view/session_check.php', { cache: 'no-store' })
             .then(r => r.json())

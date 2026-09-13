@@ -1,0 +1,21 @@
+# ── Secrets & credentials (NEVER commit these) ───────────────
+config/secrets.php
+config/.env
+.env
+*.env
+
+# ── Uploaded user files ───────────────────────────────────────
+view/uploads/
+view/upload/
+view/uploadss/
+
+# ── OS & editor junk ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# ── PHP logs ──────────────────────────────────────────────────
+*.log
+php_errors.log
