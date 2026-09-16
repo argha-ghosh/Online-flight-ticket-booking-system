@@ -241,6 +241,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4fb; colo
     .ms-stats { grid-template-columns: 1fr; }
 }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 
 <div class="ms-wrap">
 

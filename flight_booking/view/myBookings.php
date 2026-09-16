@@ -320,6 +320,7 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
     .btn-view,.btn-cancel{flex:1;text-align:center}
 }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 

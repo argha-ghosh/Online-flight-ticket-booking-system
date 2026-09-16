@@ -199,6 +199,7 @@ if (isset($_POST['save_schedule'])) {
             color: #999;
         }
     </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 <?php include("../includes/header.php"); ?>

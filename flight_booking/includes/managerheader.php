@@ -187,6 +187,26 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
             color: #94a3b8; font-size: 0.9rem;
         }
     </style>
+    <!-- Prevent dark mode flash -->
+    <script>
+    (function(){var t=localStorage.getItem('gz_theme');if(t==='dark')document.documentElement.style.cssText='background:#0d1117';})();
+    </script>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
+    <script src="<?= BASE_URL ?>/theme.js" defer></script>
+    <style>
+    .gz-theme-btn {
+        display: flex; align-items: center; gap: 5px;
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 18px; padding: 4px 10px 4px 8px;
+        cursor: pointer; font-family: inherit; font-size: 0.75rem; font-weight: 600;
+        color: rgba(255,255,255,0.8); transition: background .2s; margin-left: 4px;
+        white-space: nowrap;
+    }
+    .gz-theme-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .gz-theme-icon { font-size: 0.82rem; line-height: 1; }
+    .gz-theme-label { line-height: 1; }
+    @media (max-width: 480px) { .gz-theme-label { display: none; } }
+    </style>
 </head>
 <body>
 <header>
@@ -236,6 +256,11 @@ $manager_name = $mgr_row['name'] ?? 'Manager';
                 </div>
             </div>
         </nav>
+        <!-- Theme toggle -->
+        <button class="gz-theme-btn" type="button" aria-label="Toggle dark mode">
+            <span class="gz-theme-icon">🌙</span>
+            <span class="gz-theme-label">Dark</span>
+        </button>
     </div>
 </header>
 

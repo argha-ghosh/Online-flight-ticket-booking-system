@@ -481,6 +481,7 @@ body {
     .greeting-bar{flex-direction:column;align-items:flex-start}
 }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 
