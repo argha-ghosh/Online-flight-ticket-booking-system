@@ -260,6 +260,7 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 }
 @media print{.sub-header,.back-bar,.sidebar,.right-col,.bp-tear,header,footer{display:none!important}*,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{background:#fff!important;padding-top:0!important}.page-wrap{display:block!important;padding:0!important}.bp{box-shadow:none!important;border-radius:0!important}}
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 

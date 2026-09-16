@@ -357,6 +357,7 @@ body { background: var(--db-bg); }
     .bk-table th:nth-child(6), .bk-table td:nth-child(6) { display: none; }
 }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 

@@ -273,6 +273,36 @@ if ($is_webuser && isset($_SESSION['email'])) {
         .btn-nav-login, .btn-nav-register { padding: 6px 12px !important; font-size: .82rem !important; }
     }
 </style>
+<!-- Prevent dark mode flash: apply saved theme before first paint -->
+<script>
+(function(){var t=localStorage.getItem('gz_theme');if(t==='dark')document.documentElement.style.cssText='background:#0d1117';})();
+</script>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
+<script src="<?= BASE_URL ?>/theme.js" defer></script>
+<style>
+    /* ── THEME TOGGLE BUTTON ── */
+    .gz-theme-btn {
+        display: flex; align-items: center; gap: 6px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 20px;
+        padding: 5px 12px 5px 8px;
+        cursor: pointer;
+        font-family: inherit; font-size: 0.78rem; font-weight: 600;
+        color: rgba(255,255,255,0.85);
+        transition: background .2s, border-color .2s;
+        margin-left: 4px;
+        white-space: nowrap;
+    }
+    .gz-theme-btn:hover {
+        background: rgba(255,255,255,0.2);
+        border-color: rgba(255,255,255,0.4);
+        color: #fff;
+    }
+    .gz-theme-icon { font-size: 0.85rem; line-height: 1; }
+    .gz-theme-label { line-height: 1; }
+    @media (max-width: 480px) { .gz-theme-label { display: none; } }
+</style>
 
 <header id="siteHeader">
     <div class="header-container">
@@ -326,6 +356,13 @@ if ($is_webuser && isset($_SESSION['email'])) {
                 <a href="<?= BASE_URL ?>/view/login.php" class="btn-nav-login">Login</a>
                 <a href="<?= BASE_URL ?>/view/register.php" class="btn-nav-register">Register</a>
             <?php endif; ?>
+
+            <!-- Dark / Light mode toggle -->
+            <button class="gz-theme-btn" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+                <span class="gz-theme-icon">🌙</span>
+                <span class="gz-theme-label">Dark</span>
+            </button>
+
         </nav>
 
     </div>
