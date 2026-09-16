@@ -229,6 +229,7 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
     .profile-grid{grid-template-columns:1fr}
 }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 

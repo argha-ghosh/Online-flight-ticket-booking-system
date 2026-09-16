@@ -623,6 +623,11 @@ $total_bookings = $conn->query("SELECT COUNT(*) as c FROM bookings WHERE status=
             .why-section, .routes-section, .quote-section, .cta-section { padding: 70px 20px; }
         }
     </style>
+    <script>
+(function(){var t=localStorage.getItem('gz_theme');if(t==='dark')document.documentElement.style.cssText='background:#0d1117';})();
+</script>
+<script src="<?= BASE_URL ?>/theme.js" defer></script>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 
@@ -894,6 +899,32 @@ window.addEventListener('scroll', () => {
 });
 </script>
 
+
+<!-- GoZayan Theme Toggle (floating) -->
+<style>
+.gz-float-theme {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(13,17,23,0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 24px;
+    padding: 8px 16px 8px 12px;
+    cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    transition: all .2s; white-space: nowrap;
+}
+.gz-float-theme:hover { background: rgba(13,17,23,0.95); border-color: rgba(255,255,255,0.3); color: #fff; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.5); }
+.gz-float-theme .gz-theme-icon  { font-size: 1rem; line-height: 1; }
+.gz-float-theme .gz-theme-label { line-height: 1; }
+@media (max-width: 480px) { .gz-float-theme { bottom: 16px; right: 16px; padding: 7px 12px 7px 10px; } .gz-float-theme .gz-theme-label { display: none; } }
+</style>
+<button class="gz-float-theme gz-theme-btn" type="button" aria-label="Toggle dark mode">
+    <span class="gz-theme-icon">🌙</span>
+    <span class="gz-theme-label">Dark</span>
+</button>
 </body>
 </html>
 <?php include("../includes/footer.php"); ?>

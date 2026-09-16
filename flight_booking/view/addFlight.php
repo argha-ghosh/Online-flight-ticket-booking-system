@@ -370,6 +370,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4fb; colo
     .class-grid { grid-template-columns:1fr 1fr; }
 }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 
 <div class="fl-page">
     <div class="fl-titlebar">

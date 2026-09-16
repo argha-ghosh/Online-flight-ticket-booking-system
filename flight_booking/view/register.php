@@ -632,6 +632,7 @@ $verified_email = $otp_verified ? htmlspecialchars($_SESSION['reg_otp_email'] ??
             .otp-digits input { width: 38px; height: 42px; font-size: 1rem; }
         }
     </style>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 </head>
 <body>
 
@@ -1144,5 +1145,29 @@ function showClientErr(html) {
 </script>
 
 <?php include '../includes/footer.php'; ?>
+
+<!-- GoZayan Theme Toggle (floating) -->
+<style>
+.gz-float-theme {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(13,17,23,0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 24px; padding: 8px 16px 8px 12px;
+    cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    transition: all .2s; white-space: nowrap;
+}
+.gz-float-theme:hover { background: rgba(13,17,23,0.95); color: #fff; transform: translateY(-2px); }
+.gz-float-theme .gz-theme-icon { font-size: 1rem; line-height: 1; }
+.gz-float-theme .gz-theme-label { line-height: 1; }
+@media (max-width: 480px) { .gz-float-theme { bottom: 16px; right: 16px; } .gz-float-theme .gz-theme-label { display: none; } }
+</style>
+<button class="gz-float-theme gz-theme-btn" type="button" aria-label="Toggle dark mode">
+    <span class="gz-theme-icon">🌙</span>
+    <span class="gz-theme-label">Dark</span>
+</button>
 </body>
 </html>

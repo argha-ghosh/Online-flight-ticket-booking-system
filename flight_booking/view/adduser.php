@@ -603,6 +603,7 @@ body {
     .btn { width: 100%; justify-content: center; }
 }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/dark.css">
 
 <div class="page">
 
